@@ -79,7 +79,6 @@
       "[concat(parameters('templateBaseUrl'), 'scripts/elasticsearch-ubuntu-install.sh')]",
       "[concat(parameters('templateBaseUrl'), 'scripts/kibana-install.sh')]",
       "[concat(parameters('templateBaseUrl'), 'scripts/vm-disk-utils-0.1.sh')]",
-      "[concat(parameters('templateBaseUrl'), 'scripts/user-information.sh')]",
       "[concat(parameters('templateBaseUrl'), 'scripts/data-node-install.sh')]"
     ],
     "clientInstallScript": "[concat('bash elasticsearch-ubuntu-install.sh -y', variables('commonShortOpts'), variables('commonInstallParams'))]",
