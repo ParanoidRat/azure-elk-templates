@@ -108,7 +108,7 @@ STORAGE_KEY=""
 
 #Loop through options passed
 while getopts :n:v:A:R:K:S:Z:p:a:k:L:Xxyzldjh optname; do
-  log "Option $optname set to value \"${OPTARG}\""
+  log "Option $optname set"
   case $optname in
     n) #set cluster name
       CLUSTER_NAME=${OPTARG}
@@ -235,7 +235,7 @@ install_java()
     (apt-get -yq install oracle-java8-installer || (sleep 15; apt-get -yq install oracle-java8-installer))
     command -v java >/dev/null 2>&1 || { sleep 15; sudo rm /var/cache/oracle-jdk8-installer/jdk-*; sudo apt-get install -f; }
 
-    #if the previous did not install correctly we go nuclear, otherwise this loop will early exit
+    #if the previus did not install correctly we go nuclear, otherwise this loop will early exit
     for i in $(seq 30); do
       if $(command -v java >/dev/null 2>&1); then
         log "[install_java] Installed java!"

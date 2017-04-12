@@ -31,6 +31,16 @@ help()
     echo "-l install plugins"
     echo "-L <plugin;plugin> install additional plugins"
 
+    echo "-U api url"
+    echo "-I marketing id"
+    echo "-c company name"
+    echo "-e email address"
+    echo "-f first name"
+    echo "-m last name"
+    echo "-t job title"
+    echo "-s cluster setup"
+    echo "-o country"
+
     echo "-j install azure cloud plugin for snapshot and restore"
     echo "-a set the default storage account for azure cloud plugin"
     echo "-k set the key for the default storage account for azure cloud plugin"
@@ -80,8 +90,8 @@ COUNTRY=""
 INSTALL_SWITCHES=""
 
 #Loop through options passed
-while getopts :n:v:A:R:K:S:Z:p:a:k:L:Xxyzldjh optname; do
-  log "Option $optname set to value \"${OPTARG}\""
+while getopts :n:v:A:R:K:S:Z:p:U:I:c:e:f:m:t:s:o:a:k:L:Xxyzldjh optname; do
+  log "Option $optname set"
   case $optname in
     n) #set cluster name
       CLUSTER_NAME=${OPTARG}
@@ -137,6 +147,30 @@ while getopts :n:v:A:R:K:S:Z:p:a:k:L:Xxyzldjh optname; do
     p) #namespace prefix for nodes
       NAMESPACE_PREFIX="${OPTARG}"
       ;;
+    U) #set API url
+      API_URL=${OPTARG}
+      ;;
+    I) #set marketing id
+      MARKETING_ID=${OPTARG}
+      ;;
+    c) #set company name
+      COMPANY_NAME=${OPTARG}
+      ;;
+    e) #set email
+      EMAIL=${OPTARG}
+      ;;
+    f) #set first name
+      FIRST_NAME=${OPTARG}
+      ;;
+    m) #set last name
+      LAST_NAME=${OPTARG}
+      ;;
+    t) #set job title
+      JOB_TITLE=${OPTARG}
+      ;;
+    o) #set country
+      COUNTRY=${OPTARG}
+      ;;
     s) #set cluster setup
       CLUSTER_SETUP=${OPTARG}
       ;;
@@ -184,5 +218,7 @@ if [ $EXIT_CODE -ne 0 ]; then
   exit $EXIT_CODE
 fi
 
+bash user-information.sh -U "$API_URL" -I "$MARKETING_ID" -c "$COMPANY_NAME" -e "$EMAIL" -f "$FIRST_NAME" -l "$LAST_NAME" -t "$JOB_TITLE" -s "$CLUSTER_SETUP" -o "$COUNTRY"
+EXIT_CODE=$?
 log "End execution of Data Node Install script extension"
 exit $EXIT_CODE
