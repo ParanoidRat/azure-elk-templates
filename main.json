@@ -556,7 +556,7 @@
     },
     "vNetNewAddressPrefix": {
       "type": "string",
-      "defaultValue": "10.0.0.0/24",
+      "defaultValue": "10.0.0.0/16",
       "metadata": {
         "description": "The address prefix size to use for a New Virtual Network. Required when creating a new Virtual Network"
       }
@@ -570,21 +570,35 @@
     },
     "vNetClusterSubnetName": {
       "type": "string",
-      "defaultValue": "es-subnet",
+      "defaultValue": "subnet-elastic",
       "metadata": {
         "description": "Subnet name to use for Elasticsearch nodes"
       }
     },
     "vNetNewClusterSubnetAddressPrefix": {
       "type": "string",
-      "defaultValue": "10.0.0.0/25",
+      "defaultValue": "10.0.0.0/24",
       "metadata": {
         "description": "The address space of the subnet. Required when creating a new Virtual Network"
       }
     },
+    "vNetLogstashSubnetName": {
+      "type": "string",
+      "defaultValue": "subnet-logstash",
+      "metadata": {
+        "description": "Subnet name to use for Logstash nodes"
+      }
+    },
+    "vNetLogstashSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.1.0/24",
+      "metadata": {
+        "description": "The address space of the subnet. Required when creating a new Virtual Network"
+      }
+    },    
     "vNetAppGatewaySubnetName": {
       "type": "string",
-      "defaultValue": "es-gateway-subnet",
+      "defaultValue": "subnet-es-gateway",
       "metadata": {
         "description": "Subnet name to use for the Application Gateway. Required when selecting Application Gateway for load balancing"
       }
@@ -1190,6 +1204,10 @@
         "name": "[parameters('vNetClusterSubnetName')]",
         "addressPrefix": "[parameters('vNetNewClusterSubnetAddressPrefix')]",
         "loadbalancerIp": "[parameters('vNetLoadBalancerIp')]"
+      },
+      "logstashSubnet": {
+        "name": "[parameters('vNetLogstashSubnetName)]",
+        "addressPrefix": "[parameters('vNetLogstashSubnetAddressPrefix')]"
       },
       "applicationGatewaySubnet": {
         "name": "[parameters('vNetAppGatewaySubnetName')]",
