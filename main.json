@@ -1198,7 +1198,7 @@
     },
     "commonVmSettings": {
       "namespacePrefix": "[parameters('vmHostNamePrefix')]",
-      "storageAccountName": "[concat('elkvhds', toLower(uniqueString(resourceGroup().id, deployment().name)))]",
+      "storageAccountName": "[concat('elkvhds', uniqueString(resourceGroup().id, deployment().name))]",
       "location": "[variables('location')]",
       "subnet": "[variables('networkSettings').subnet]",
       "subnetId": "[concat(resourceId(variables('networkSettings').resourceGroup, 'Microsoft.Network/virtualNetworks', variables('networkSettings').name), '/subnets/', variables('networkSettings').subnet.name)]",

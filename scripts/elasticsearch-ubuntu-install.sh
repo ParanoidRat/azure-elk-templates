@@ -108,7 +108,7 @@ STORAGE_KEY=""
 
 #Loop through options passed
 while getopts :n:v:A:R:K:S:Z:p:a:k:L:Xxyzldjh optname; do
-  log "Option $optname set"
+  log "Option $optname set to value \"${OPTARG}\""
   case $optname in
     n) #set cluster name
       CLUSTER_NAME=${OPTARG}
