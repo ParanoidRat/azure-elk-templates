@@ -107,7 +107,7 @@
               "protocol": "Tcp",
               "sourcePortRange": "*",
               "destinationPortRange": "5601",
-              "sourceAddressPrefix": "*",
+              "sourceAddressPrefix": "165.65.107.0/24",
               "destinationAddressPrefix": "*",
               "access": "Allow",
               "priority": 200,
@@ -123,9 +123,9 @@
       "name": "[variables('publicIpName')]",
       "location": "[parameters('location')]",
       "properties": {
-        "publicIPAllocationMethod": "Dynamic",
+        "publicIPAllocationMethod": "Static",
         "dnsSettings": {
-          "domainNameLabel": "[concat('kb-', uniqueString(resourceGroup().id))]"
+          "domainNameLabel": "['dfir-kibana']"
       }
       }
     },
