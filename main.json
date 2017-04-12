@@ -1206,7 +1206,7 @@
         "loadbalancerIp": "[parameters('vNetLoadBalancerIp')]"
       },
       "logstashSubnet": {
-        "name": "[parameters('vNetLogstashSubnetName)]",
+        "name": "[parameters('vNetLogstashSubnetName')]",
         "addressPrefix": "[parameters('vNetLogstashSubnetAddressPrefix')]"
       },
       "applicationGatewaySubnet": {
