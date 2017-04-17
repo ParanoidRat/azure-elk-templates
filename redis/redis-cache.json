@@ -66,12 +66,20 @@
     }
   ],
   "outputs": {
+    "redisHost": {
+      "value": "[reference(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName'))).hostName]",
+      "type": "string"
+    },
+    "redisPort": {
+      "value": "[reference(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName'))).sslPort]",
+      "type": "int"
+    },    
     "redisPrimaryKey": {
-      "value": "[listKeys(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName')), '2015-08-01').primaryKey]",
+      "value": "[reference(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName'))).accessKeys.primaryKey]",
       "type": "string"
     },
     "redisSecondaryKey": {
-      "value": "[listKeys(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName')), '2015-08-01').secondaryKey]",
+      "value": "[reference(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName'))).accessKeys.secondaryKey]",
       "type": "string"
     }
   }  
