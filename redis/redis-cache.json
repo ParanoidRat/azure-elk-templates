@@ -4,6 +4,7 @@
   "parameters": {
     "redisCacheName": {
       "type": "string",
+      "defaultValue": "redis-dfir",
       "metadata": {
         "description": "The name of redis cache to create"
       }
