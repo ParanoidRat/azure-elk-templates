@@ -1,54 +1,26 @@
 #!/bin/bash
 
-# License: https://github.com/elastic/azure-marketplace/blob/master/LICENSE.txt
-#
-# Trent Swanson (Full Scale 180 Inc)
-# Martijn Laarman, Greg Marzouka, Russ Cam (Elastic)
-# Contributors
-#
-
 #########################
 # HELP
 #########################
 
 help()
 {
-    echo "This script installs Elasticsearch cluster on Ubuntu"
+    echo "This script installs Logstash on Ubuntu"
     echo "Parameters:"
-    echo "-n elasticsearch cluster name"
-    echo "-v elasticsearch version 1.5.0"
-    echo "-p hostname prefix of nodes for unicast discovery"
-
-    echo "-d cluster uses dedicated masters"
-    echo "-Z <number of nodes> hint to the install script how many data nodes we are provisioning"
-
-    echo "-A admin password"
-    echo "-R read password"
-    echo "-K kibana user password"
-    echo "-S kibana server password"
-    echo "-X enable anonymous access with monitoring role (for health probes)"
-
-    echo "-x configure as a dedicated master node"
-    echo "-y configure as client only node (no master, no data)"
-    echo "-z configure as data node (no master)"
-    echo "-l install plugins"
+    echo "-V <version> Logstash version (e.g. 5.3.0)"
     echo "-L <plugin;plugin> install additional plugins"
-
-    echo "-j install azure cloud plugin for snapshot and restore"
-    echo "-a set the default storage account for azure cloud plugin"
-    echo "-k set the key for the default storage account for azure cloud plugin"
-
+    echo "-U <uri> Elasticsearch URI for output (e.g. http://10.0.0.4:9200)"
     echo "-h view this help content"
 }
-# Custom logging with time so we can easily relate running times, also log to separate file so order is guaranteed.
-# The Script extension output the stdout/err buffer in intervals with duplicates.
+
 log()
 {
     echo \[$(date +%d%m%Y-%H:%M:%S)\] "$1"
     echo \[$(date +%d%m%Y-%H:%M:%S)\] "$1" >> /var/log/arm-install.log
 }
 
-log "Begin execution of Elasticsearch script extension on ${HOSTNAME}"
+log "Begin execution of Logstash script extension on ${HOSTNAME}"
 START_TIME=$SECONDS
 
 export DEBIAN_FRONTEND=noninteractive
@@ -81,89 +53,23 @@ fi
 # Parameter handling
 #########################
 
-CLUSTER_NAME="elasticsearch"
-NAMESPACE_PREFIX=""
-ES_VERSION="2.0.0"
-INSTALL_PLUGINS=0
+LOGSTASH_VERSION="5.3.0"
 INSTALL_ADDITIONAL_PLUGINS=""
-CLIENT_ONLY_NODE=0
-DATA_ONLY_NODE=0
-MASTER_ONLY_NODE=0
-
-CLUSTER_USES_DEDICATED_MASTERS=0
-DATANODE_COUNT=0
-
-MINIMUM_MASTER_NODES=3
-UNICAST_HOSTS='["'"$NAMESPACE_PREFIX"'master-0:9300","'"$NAMESPACE_PREFIX"'master-1:9300","'"$NAMESPACE_PREFIX"'master-2:9300"]'
-
-USER_ADMIN_PWD="changeME"
-USER_READ_PWD="changeME"
-USER_KIBANA4_PWD="changeME"
-USER_KIBANA4_SERVER_PWD="changeME"
-ANONYMOUS_ACCESS=0
-
-INSTALL_AZURECLOUD_PLUGIN=0
-STORAGE_ACCOUNT=""
-STORAGE_KEY=""
+ES_URI="http://10.0.0.4:9200"
 
 #Loop through options passed
-while getopts :n:v:A:R:K:S:Z:p:a:k:L:Xxyzldjh optname; do
+while getopts :V:L:U:h optname; do
   log "Option $optname set"
   case $optname in
-    n) #set cluster name
-      CLUSTER_NAME=${OPTARG}
-      ;;
-    v) #elasticsearch version number
-      ES_VERSION=${OPTARG}
-      ;;
-    A) #security admin pwd
-      USER_ADMIN_PWD=${OPTARG}
-      ;;
-    R) #security readonly pwd
-      USER_READ_PWD=${OPTARG}
-      ;;
-    K) #security kibana user pwd
-      USER_KIBANA4_PWD=${OPTARG}
-      ;;
-    S) #security kibana server pwd
-      USER_KIBANA4_SERVER_PWD=${OPTARG}
-      ;;
-    X) #anonymous access
-      ANONYMOUS_ACCESS=1
-      ;;
-    Z) #number of data nodes hints (used to calculate minimum master nodes)
-      DATANODE_COUNT=${OPTARG}
-      ;;
-    x) #master node
-      MASTER_ONLY_NODE=1
-      ;;
-    y) #client node
-      CLIENT_ONLY_NODE=1
-      ;;
-    z) #data node
-      DATA_ONLY_NODE=1
-      ;;
-    l) #install plugins
-      INSTALL_PLUGINS=1
+    V) #Logstash version number
+      LOGSTASH_VERSION=${OPTARG}
       ;;
     L) #install additional plugins
       INSTALL_ADDITIONAL_PLUGINS="${OPTARG}"
       ;;
-    d) #cluster is using dedicated master nodes
-      CLUSTER_USES_DEDICATED_MASTERS=1
-      ;;
-    p) #namespace prefix for nodes
-      NAMESPACE_PREFIX="${OPTARG}"
-      ;;
-    j) #install azure cloud plugin
-      INSTALL_AZURECLOUD_PLUGIN=1
-      ;;
-    a) #azure storage account for azure cloud plugin
-      STORAGE_ACCOUNT=${OPTARG}
-      ;;
-    k) #azure storage account key for azure cloud plugin
-      STORAGE_KEY=${OPTARG}
-      ;;
+    U) #install additional plugins
+      ES_URI="${OPTARG}"
+      ;;    
     h) #show help
       help
       exit 2
@@ -176,49 +82,12 @@ while getopts :n:v:A:R:K:S:Z:p:a:k:L:Xxyzldjh optname; do
   esac
 done
 
-#########################
-# Parameter state changes
-#########################
-
-if [ ${CLUSTER_USES_DEDICATED_MASTERS} -ne 0 ]; then
-    MINIMUM_MASTER_NODES=2
-    UNICAST_HOSTS='["'"$NAMESPACE_PREFIX"'master-0:9300","'"$NAMESPACE_PREFIX"'master-1:9300","'"$NAMESPACE_PREFIX"'master-2:9300"]'
-else
-    MINIMUM_MASTER_NODES=$(((DATANODE_COUNT/2)+1))
-    UNICAST_HOSTS='['
-    for i in $(seq 0 $((DATANODE_COUNT-1))); do
-        UNICAST_HOSTS="$UNICAST_HOSTS\"${NAMESPACE_PREFIX}data-$i:9300\","
-    done
-    UNICAST_HOSTS="${UNICAST_HOSTS%?}]"
-fi
-
-log "Bootstrapping an Elasticsearch $ES_VERSION cluster named '$CLUSTER_NAME' with minimum_master_nodes set to $MINIMUM_MASTER_NODES"
-log "Cluster uses dedicated master nodes is set to $CLUSTER_USES_DEDICATED_MASTERS and unicast goes to $UNICAST_HOSTS"
-log "Cluster install plugins is set to $INSTALL_PLUGINS"
+log "Bootstrapping Logstash $LOGSTASH_VERSION"
 
 
 #########################
 # Installation steps as functions
 #########################
-
-# Format data disks (Find data disks then partition, format, and mount them as seperate drives)
-format_data_disks()
-{
-    log "[format_data_disks] starting to RAID0 the attached disks"
-    # using the -s paramater causing disks under /datadisks/* to be raid0'ed
-    bash vm-disk-utils-0.1.sh -s
-    log "[format_data_disks] finished RAID0'ing the attached disks"
-}
-
-# Configure Elasticsearch Data Disk Folder and Permissions
-setup_data_disk()
-{
-    local RAIDDISK="/datadisks/disk1"
-    log "[setup_data_disk] Configuring disk $RAIDDISK/elasticsearch/data"
-    mkdir -p "$RAIDDISK/elasticsearch/data"
-    chown -R elasticsearch:elasticsearch "$RAIDDISK/elasticsearch"
-    chmod 755 "$RAIDDISK/elasticsearch"
-}
 
 # Install Oracle Java
 install_java()
@@ -235,7 +104,7 @@ install_java()
     (apt-get -yq install oracle-java8-installer || (sleep 15; apt-get -yq install oracle-java8-installer))
     command -v java >/dev/null 2>&1 || { sleep 15; sudo rm /var/cache/oracle-jdk8-installer/jdk-*; sudo apt-get install -f; }
 
-    #if the previus did not install correctly we go nuclear, otherwise this loop will early exit
+    #if the previous did not install correctly we go nuclear, otherwise this loop will early exit
     for i in $(seq 30); do
       if $(command -v java >/dev/null 2>&1); then
         log "[install_java] Installed java!"
@@ -257,26 +126,26 @@ install_java()
     command -v java >/dev/null 2>&1 || { log "Java did not get installed properly even after a retry and a forced installation" >&2; exit 50; }
 }
 
-# Install Elasticsearch
-install_es()
+# Install Logstash
+install_logstash()
 {
-    if [[ "${ES_VERSION}" == \2* ]]; then
-        DOWNLOAD_URL="https://download.elasticsearch.org/elasticsearch/release/org/elasticsearch/distribution/deb/elasticsearch/$ES_VERSION/elasticsearch-$ES_VERSION.deb?ultron=msft&gambit=azure"
-    elif [[ "${ES_VERSION}" == \5* ]]; then
-        DOWNLOAD_URL="https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-$ES_VERSION.deb?ultron=msft&gambit=azure"
+    if [[ "${LOGSTASH_VERSION}" == \2* ]]; then
+        DOWNLOAD_URL="https://download.elastic.co/logstash/logstash/packages/debian/logstash-$LOGSTASH_VERSION_all.deb"
+    elif [[ "${LOGSTASH_VERSION}" == \5* ]]; then
+        DOWNLOAD_URL="https://artifacts.elastic.co/downloads/logstash/logstash-$LOGSTASH_VERSION.deb"
     else
-        DOWNLOAD_URL="https://download.elasticsearch.org/elasticsearch/elasticsearch/elasticsearch-$ES_VERSION.deb"
+        DOWNLOAD_URL="https://artifacts.elastic.co/downloads/logstash/logstash-$LOGSTASH_VERSION.deb"
     fi
 
-    log "[install_es] Installing Elasticsearch Version - $ES_VERSION"
-    log "[install_es] Download location - $DOWNLOAD_URL"
-    sudo wget -q "$DOWNLOAD_URL" -O elasticsearch.deb
-    log "[install_es] Downloaded elasticsearch $ES_VERSION"
-    sudo dpkg -i elasticsearch.deb
-    log "[install_es] Installed Elasticsearch Version - $ES_VERSION"
+    log "[install_logstash] Installing logstash version - $LOGSTASH_VERSION"
+    log "[install_logstash] Download location - $DOWNLOAD_URL"
+    sudo wget -q "$DOWNLOAD_URL" -O logstash.deb
+    log "[install_logstash] Downloaded logstash $LOGSTASH_VERSION"
+    sudo dpkg -i logstash.deb
+    log "[install_logstash] Installed logstash version - $LOGSTASH_VERSION"
 
-    log "[install_es] Disable Elasticsearch System-V style init scripts (will be using monit)"
-    sudo update-rc.d elasticsearch disable
+    log "[install_logstash] Disable logstash System-V style init scripts (will be using monit)"
+    sudo update-rc.d logstash disable
 }
 
 ## Plugins
@@ -284,47 +153,16 @@ install_es()
 
 plugin_cmd()
 {
-    if [[ "${ES_VERSION}" == \5* ]]; then
-      echo /usr/share/elasticsearch/bin/elasticsearch-plugin
+    if [[ "${LOGSTASH_VERSION}" == \5* ]]; then
+      echo /usr/share/logstash/bin/logstash-plugin
     else
-      echo /usr/share/elasticsearch/bin/plugin
+      echo /usr/share/logstash/bin/plugin
     fi
-}
-
-install_plugins()
-{
-    if [[ "${ES_VERSION}" == \5* ]]; then
-      sudo $(plugin_cmd) install x-pack --batch
-    else
-      log "[install_plugins] Installing X-Pack plugins security, Marvel, Watcher"
-      sudo $(plugin_cmd) install license
-      sudo $(plugin_cmd) install shield
-      sudo $(plugin_cmd) install watcher
-      sudo $(plugin_cmd) install marvel-agent
-      if dpkg --compare-versions "$ES_VERSION" ">=" "2.3.0"; then
-        log "[install_plugins] Installing X-Pack plugin Graph"
-        sudo $(plugin_cmd) install graph
-        log "[install_plugins] Installed X-Pack plugin Graph"
-      fi
-      log "[install_plugins] Installed X-Pack plugins security, Marvel, Watcher"
-    fi
-
-}
-
-install_azure_cloud_plugin()
-{
-    log "[install_azure_cloud_plugin] Installing plugin Cloud-Azure"
-    if [[ "${ES_VERSION}" == \5* ]]; then
-    	sudo $(plugin_cmd) install repository-azure
-    else
-    	sudo $(plugin_cmd) install cloud-azure
-    fi
-    log "[install_azure_cloud_plugin] Installed plugin Cloud-Azure"
 }
 
 install_additional_plugins()
 {
-    SKIP_PLUGINS="license shield watcher marvel-agent graph cloud-azure"
+    SKIP_PLUGINS="license"
     log "[install_additional_plugins] Installing additional plugins"
     for PLUGIN in $(echo $INSTALL_ADDITIONAL_PLUGINS | tr ";" "\n")
     do
@@ -338,118 +176,40 @@ install_additional_plugins()
     done
 }
 
-## Security
-##----------------------------------
-
-security_cmd()
-{
-    if [[ "${ES_VERSION}" == \5* ]]; then
-      echo /usr/share/elasticsearch/bin/x-pack/users
-    else
-      echo /usr/share/elasticsearch/bin/shield/esusers
-    fi
-}
-
-apply_security_settings_2x()
-{
-    local SEC_FILE=/etc/elasticsearch/shield/roles.yml
-    log "[apply_security_settings]  Check that $SEC_FILE contains kibana4 role"
-    if ! sudo grep -q "kibana4:" "$SEC_FILE"; then
-        log "[apply_security_settings]  No kibana4 role. Adding now"
-        {
-            echo -e ""
-            echo -e "# kibana4 user role."
-            echo -e "kibana4:"
-            echo -e "  cluster:"
-            echo -e "    - monitor"
-            echo -e "  indices:"
-            echo -e "    - names: '*'"
-            echo -e "      privileges:"
-            echo -e "        - view_index_metadata"
-            echo -e "        - read"
-            echo -e "    - names: '.kibana*'"
-            echo -e "      privileges:"
-            echo -e "        - manage"
-            echo -e "        - read"
-            echo -e "        - index"
-        } >> $SEC_FILE
-        log "[apply_security_settings]  kibana4 role added"
-    fi
-    log "[apply_security_settings]  Finished checking roles.yml for kibana4 role"
-
-    if [ ${ANONYMOUS_ACCESS} -ne 0 ]; then
-      log "[apply_security_settings]  Check that $SEC_FILE contains anonymous_user role"
-      if ! sudo grep -q "anonymous_user:" "$SEC_FILE"; then
-          log "[apply_security_settings]  No anonymous_user role. Adding now"
-          {
-              echo -e ""
-              echo -e "# anonymous user role."
-              echo -e "anonymous_user:"
-              echo -e "  cluster:"
-              echo -e "    - cluster:monitor/main"
-          } >> $SEC_FILE
-          log "[apply_security_settings]  anonymous_user role added"
-      fi
-      log "[apply_security_settings]  Finished checking roles.yml for anonymous_user role"
-    fi
-
-    log "[apply_security_settings] Start adding es_admin"
-    sudo $(security_cmd) useradd "es_admin" -p "${USER_ADMIN_PWD}" -r admin
-    log "[instalapply_security_settingsl_plugins] Finished adding es_admin"
-
-    log "[apply_security_settings]  Start adding es_read"
-    sudo $(security_cmd) useradd "es_read" -p "${USER_READ_PWD}" -r user
-    log "[apply_security_settings]  Finished adding es_read"
-
-    log "[apply_security_settings]  Start adding es_kibana"
-    sudo $(security_cmd) useradd "es_kibana" -p "${USER_KIBANA4_PWD}" -r kibana4
-    log "[apply_security_settings]  Finished adding es_kibana"
-
-    log "[apply_security_settings]  Start adding es_kibana_server"
-    sudo $(security_cmd) useradd "es_kibana_server" -p "${USER_KIBANA4_SERVER_PWD}" -r kibana4_server
-    log "[apply_security_settings]  Finished adding es_kibana_server"
-}
-
-node_is_up()
-{
-  curl --output /dev/null --silent --head --fail http://localhost:9200 --user elastic:$1
-  return $?
-}
-wait_for_started()
-{
-  for i in $(seq 30); do
-    if $(node_is_up "changeme" || node_is_up "$USER_ADMIN_PWD"); then
-      log "[wait_for_started] Node is up!"
-      return
-    else
-      sleep 5
-      log "[wait_for_started] Seeing if node is up for the after sleeping 5 seconds, retry ${i}/30"
-    fi
-  done
-  log "[wait_for_started] never saw elasticsearch go up locally"
-  exit 10
-}
-
 
 ## Configuration
 ##----------------------------------
 
 configure_logstash_yml()
 {
-    # Backup the current logstash configuration file
-    mv /etc/logstash/logstash.yml /etc/logstash/logstash.bak
 
-    # Set cluster and machine names - just use hostname for our node.name
-    echo "cluster.name: $CLUSTER_NAME" >> /etc/logstash/logstash.yml
-    echo "node.name: ${HOSTNAME}" >> /etc/logstash/logstash.yml
+    local LOGSTASH_CONF=/etc/logstash/logstash.yml
 
-    log "[configure_elasticsearch_yaml] Update configuration with data path list of $DATAPATH_CONFIG"
-    echo "path.data: /datadisks/disk1/elasticsearch/data" >> /etc/logstash/logstash.yml
+    log "[configure_logstash_yml] Configuring Logstash $LOGSTASH_CONF"
 
-    # Configure discovery
-    log "[configure_elasticsearch_yaml] Update configuration with hosts configuration of $UNICAST_HOSTS"
-    echo "discovery.zen.ping.unicast.hosts: $UNICAST_HOSTS" >> /etc/logstash/logstash.yml
+    log "[configure_logstash_yml] Backup old $LOGSTASH_CONF"
+    mv $LOGSTASH_CONF $LOGSTASH_CONF.bak
 
+    log "[configure_logstash_yml] Pointing output to $ES_URI"
+    if [[ "${ES_VERSION}" == \5* ]]; then
+      {
+          echo -e ""
+          echo -e "# output to Elasticsearch cluster"
+          echo -e "output {"
+          echo -e "  elasticsearch { hosts => [\"$ES_URI\"] }"
+          echo -e "}"
+          echo -e ""
+      } >> $LOGSTASH_CONF
+    else
+      {
+          echo -e ""
+          echo -e "# output to Elasticsearch cluster"
+          echo -e "output {"
+          echo -e "  elasticsearch { hosts => [\"$ES_URI\"] }"
+          echo -e "}"
+          echo -e ""
+      } >> $LOGSTASH_CONF
+    fi 
 }
 
 
@@ -514,6 +274,10 @@ install_ntp
 install_java
 
 install_logstash
+
+if [[ ! -z "${INSTALL_ADDITIONAL_PLUGINS// }" ]]; then
+    install_additional_plugins
+fi
 
 install_monit
 
