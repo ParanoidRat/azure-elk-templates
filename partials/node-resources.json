@@ -234,6 +234,10 @@
       "value": "[reference('kibana').outputs.fqdn.value]",
       "type": "string"
     },
+    "kibana-privateIP": {
+      "value": "[reference('kibana').outputs.privateIP.value]",
+      "type": "string"
+    },    
     "jumpboxssh": {
       "value": "[reference('jumpbox').outputs.ssh.value]",
       "type": "string"

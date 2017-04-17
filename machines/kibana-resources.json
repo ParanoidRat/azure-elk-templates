@@ -205,7 +205,7 @@
     }
   ],
   "outputs": {
-    "privateIPAddress": {
+    "privateIP": {
       "value": "reference(variables('nicName')).ipConfigurations[0].properties.privateIPAddress",
       "type": "string"
     },    

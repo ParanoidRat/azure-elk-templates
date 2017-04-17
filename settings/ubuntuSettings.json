@@ -184,6 +184,10 @@
       "value": "[reference('elasticsearch-nodes').outputs.kibana.value]",
       "type": "string"
     },
+    "kibana-privateIP": {
+      "value": "[reference('elasticsearch-nodes').outputs.kibana-privateIP.value]",
+      "type": "string"
+    },    
     "jumpboxssh": {
       "value": "[reference('elasticsearch-nodes').outputs.jumpboxssh.value]",
       "type": "string"
