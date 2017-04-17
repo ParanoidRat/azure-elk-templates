@@ -54,7 +54,7 @@
   },
   "variables": {
     "namespace": "[parameters('namespace')]",
-    "subnetId": "[concat(resourceId(parameters('networkSettings').resourceGroup, 'Microsoft.Network/virtualNetworks', parameters('networkSettings').name), '/subnets/', parameters('networkSettings').subnet.name)]",
+    "subnetId": "[concat(resourceId(parameters('networkSettings').resourceGroup, 'Microsoft.Network/virtualNetworks', parameters('networkSettings').name), '/subnets/', parameters('networkSettings').extSubnet.name)]",
     "publicIpName": "[concat(variables('namespace'), '-ip')]",
     "securityGroupName": "[concat(variables('namespace'), '-nsg')]",
     "nicName": "[concat(variables('namespace'), '-nic')]",
@@ -103,7 +103,7 @@
           {
             "name": "Kibana",
             "properties": {
-              "description": "Allows inbound Kibana HTTP traffic from anyone",
+              "description": "Allows inbound Kibana HTTP traffic from mgmt",
               "protocol": "Tcp",
               "sourcePortRange": "*",
               "destinationPortRange": "5601",
@@ -205,6 +205,10 @@
     }
   ],
   "outputs": {
+    "privateIPAddress": {
+      "value": "reference(variables('nicName')).ipConfigurations[0].properties.privateIPAddress",
+      "type": "string"
+    },    
     "fqdn": {
       "value": "[concat('http://',reference(resourceId('Microsoft.Network/publicIPAddresses', variables('publicIpName')),providers('Microsoft.Network', 'publicIPAddresses').apiVersions[0]).dnsSettings.fqdn, ':5601')]",
       "type": "string"

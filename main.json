@@ -85,7 +85,7 @@
         "Yes",
         "No"
       ],
-      "defaultValue": "Yes",
+      "defaultValue": "No",
       "metadata": {
         "description": "Install the Commercial X-Pack Plugins - Monitoring, Security, Alerting, Graph* (Elasticsearch 2.3.0+) and if installing Kibana, Reporting and Profiler"
       }
@@ -454,7 +454,7 @@
     },
     "authenticationType": {
       "type": "string",
-      "defaultValue": "password",
+      "defaultValue": "sshPublicKey",
       "allowedValues": [
         "password",
         "sshPublicKey"
@@ -595,7 +595,21 @@
       "metadata": {
         "description": "The address space of the subnet. Required when creating a new Virtual Network"
       }
-    },    
+    },
+    "vNetExtSubnetName": {
+      "type": "string",
+      "defaultValue": "subnet-logstash",
+      "metadata": {
+        "description": "Subnet name to use for Logstash nodes"
+      }
+    },
+    "vNetExtSubnetAddressPrefix": {
+      "type": "string",
+      "defaultValue": "10.0.2.0/24",
+      "metadata": {
+        "description": "The address space of the subnet. Required when creating a new Virtual Network"
+      }
+    },        
     "vNetAppGatewaySubnetName": {
       "type": "string",
       "defaultValue": "subnet-es-gateway",
@@ -605,7 +619,7 @@
     },
     "vNetNewAppGatewaySubnetAddressPrefix": {
       "type": "string",
-      "defaultValue": "10.0.0.128/28",
+      "defaultValue": "10.0.100.0/24",
       "metadata": {
         "description": "The address space of the Application Gateway subnet. Required when creating a new Virtual Network and selecting Application Gateway for load balancing"
       }
@@ -686,62 +700,6 @@
       ],
       "metadata": {
         "description": "The firewall mode of the Application Gateway. Required when selecting Application Gateway for load balancing and using WAF tier."
-      }
-    },
-    "userCompany": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Name of your company"
-      }
-    },
-    "userEmail": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Your email address"
-      }
-    },
-    "userFirstName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Your first name"
-      }
-    },
-    "userLastName": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "Your last name"
-      }
-    },
-    "userJobTitle": {
-      "type": "string",
-      "defaultValue": "Other",
-      "allowedValues": [
-        "IT Executive (CIO, CTO, VP Engineering, etc.)",
-        "Business Executive (CEO, COO, CMO, etc.)",
-        "Architect",
-        "Business Development/Alliance Manager",
-        "DBA",
-        "Technical Operations",
-        "Director / Development Manager",
-        "Product / Project Manager",
-        "Software Developer / Engineer",
-        "Consultant",
-        "Student",
-        "Other"
-      ],
-      "metadata": {
-        "description": "Your job title. Pick the nearest description that matches"
-      }
-    },
-    "userCountry": {
-      "type": "string",
-      "defaultValue": "",
-      "metadata": {
-        "description": "The country in which you are based"
       }
     }
   },
@@ -839,13 +797,13 @@
       "Yes": "1"
     },
     "phoneHomeSettings": {
-      "email": "[parameters('userEmail')]",
-      "firstName": "[parameters('userFirstName')]",
-      "lastName": "[parameters('userLastName')]",
-      "jobTitle": "[parameters('userJobTitle')]",
-      "company": "[parameters('userCompany')]",
-      "country": "[parameters('userCountry')]",
-      "topology": "[concat('m=', variables('masterNodeCount')[parameters('dataNodesAreMasterEligible')], ' ', parameters('vmSizeMasterNodes'), ',d=', parameters('vmDataNodeCount'), ' ', parameters('vmSizeDataNodes'), ',c=', parameters('vmClientNodeCount'), ' ', parameters('vmSizeClientNodes'), ',k=', variables('kibanajumpboxNodeCount')[parameters('kibana')], ' ', parameters('vmSizeKibana'), ',j=', variables('kibanajumpboxNodeCount')[parameters('jumpbox')], ' Standard_A0', ',l=', parameters('loadBalancerType'))]"
+      "email": "",
+      "firstName": "",
+      "lastName": "",
+      "jobTitle": "",
+      "company": "",
+      "country": "",
+      "topology": ""
     },
     "networkResourceGroupMap": {
       "new": "[resourceGroup().name]",
@@ -1209,6 +1167,10 @@
         "name": "[parameters('vNetLogstashSubnetName')]",
         "addressPrefix": "[parameters('vNetLogstashSubnetAddressPrefix')]"
       },
+      "extSubnet": {
+        "name": "[parameters('vNetExtSubnetName')]",
+        "addressPrefix": "[parameters('vNetExtSubnetAddressPrefix')]"
+      },      
       "applicationGatewaySubnet": {
         "name": "[parameters('vNetAppGatewaySubnetName')]",
         "addressPrefix": "[parameters('vNetNewAppGatewaySubnetAddressPrefix')]"

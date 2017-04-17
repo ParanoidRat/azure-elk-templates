@@ -23,6 +23,12 @@
         },
         "subnets": [
           {
+            "name": "[parameters('networkSettings').extSubnet.name]",
+            "properties": {
+              "addressPrefix": "[parameters('networkSettings').extSubnet.addressPrefix]"
+            }
+          },
+          {
             "name": "[parameters('networkSettings').logstashSubnet.name]",
             "properties": {
               "addressPrefix": "[parameters('networkSettings').logstashSubnet.addressPrefix]"
