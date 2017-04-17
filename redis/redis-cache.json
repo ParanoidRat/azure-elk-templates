@@ -4,9 +4,9 @@
   "parameters": {
     "redisCacheName": {
       "type": "string",
-      "defaultValue": "redis-dfir",
+      "defaultValue": "redis-cache",
       "metadata": {
-        "description": "The name of redis cache to create"
+        "description": "The name of Redis cache to create"
       }
     },
     "SKUName": {
@@ -64,5 +64,23 @@
         }
       }
     }
-  ]
+  ],
+  "outputs": {
+    "redisHost": {
+      "value": "[reference(resourceId(‘Microsoft.Cache/Redis’, parameters('redisCacheName'))).hostName]",
+      "type": "string"
+    },    
+    "redisPort": {
+      "value": "[reference(resourceId(‘Microsoft.Cache/Redis’, parameters('redisCacheName'))).sslPort]",
+      "type": "string"
+    },
+    "redisPrimaryKey": {
+      "value": "[listKeys(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName')), '2015-08-01').primaryKey]",
+      "type": "string"
+    },
+    "redisSecondaryKey": {
+      "value": "[listKeys(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName')), '2015-08-01').secondaryKey]",
+      "type": "string"
+    }
+  }  
 }
