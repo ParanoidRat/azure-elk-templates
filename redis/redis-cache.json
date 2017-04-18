@@ -9,7 +9,7 @@
         "description": "The name of Redis cache to create"
       }
     },
-    "SKUName": {
+    "redisSKUName": {
       "type": "string",
       "allowedValues": [
         "Basic",
@@ -21,7 +21,7 @@
         "description": "The pricing tier of the new Azure Redis Cache (Basic, Standard or Premium)"
       }
     },
-    "SKUFamily": {
+    "redisSKUFamily": {
       "type": "string",
       "allowedValues": [
         "C",
@@ -32,7 +32,7 @@
         "description": "The family for the SKU (C for Basic & Standard; P for Premium)"
       }
     },
-    "SKUCapacity": {
+    "redisSKUCapacity": {
       "type": "int",
       "allowedValues": [
         0,
@@ -58,9 +58,9 @@
       "properties": {
         "enableNonSslPort": false,
         "sku": {
-          "name": "[parameters('SKUName')]",
-          "family": "[parameters('SKUFamily')]",
-          "capacity": "[parameters('SKUCapacity')]"
+          "name": "[parameters('redisSKUName')]",
+          "family": "[parameters('redisSKUFamily')]",
+          "capacity": "[parameters('redisSKUCapacity')]"
         }
       }
     }
