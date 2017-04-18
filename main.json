@@ -1320,16 +1320,16 @@
         },
         "parameters": {
           "redisCacheName": {
-            "value": "[variables('redisCacheName')]"
+            "value": "[parameters('redisCacheName')]"
           },
           "redisSKUName": {
-            "value": "[variables('redisSKUName')]"
+            "value": "[parameters('redisSKUName')]"
           },
           "redisSKUFamily": {
-            "value": "[variables('redisSKUFamily')]"
+            "value": "[parameters('redisSKUFamily')]"
           },
           "redisSKUCapacity": {
-            "value": "[variables('redisSKUCapacity')]"
+            "value": "[parameters('redisSKUCapacity')]"
           },          
         }
       }
