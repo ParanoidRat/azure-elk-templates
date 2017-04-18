@@ -79,12 +79,13 @@
       "[concat(parameters('templateBaseUrl'), 'scripts/elasticsearch-ubuntu-install.sh')]",
       "[concat(parameters('templateBaseUrl'), 'scripts/kibana-install.sh')]",
       "[concat(parameters('templateBaseUrl'), 'scripts/vm-disk-utils-0.1.sh')]",
-      "[concat(parameters('templateBaseUrl'), 'scripts/data-node-install.sh')]"
+      "[concat(parameters('templateBaseUrl'), 'scripts/data-node-install.sh')]",
+      "[concat(parameters('templateBaseUrl'), 'scripts/logstash-ubuntu-install.sh')]"
     ],
     "clientInstallScript": "[concat('bash elasticsearch-ubuntu-install.sh -y', variables('commonShortOpts'), variables('commonInstallParams'))]",
     "ubuntuSkus": {
-      "2": "14.04.4-LTS",
-      "5": "16.04.0-LTS"
+      "2": "14.04.5-LTS",
+      "5": "16.04-LTS"
     },
     "ubuntuSku": "[variables('ubuntuSkus')[substring(parameters('esSettings').version, 0, 1)]]",
     "ubuntuSettings": {
@@ -143,7 +144,19 @@
           "protectedSettings": {
             "commandToExecute": "[concat('bash kibana-install.sh -', variables('installPluginsShortOpt'), 'n ', parameters('esSettings').clusterName, ' -v ', parameters('esSettings').kibanaVersion, ' -e ', parameters('esSettings').version, ' -u ', concat('http://', parameters('topologySettings').vNetLoadBalancerIp, ':9200') ,' -S \"', parameters('esSettings').securityKibanaServerPwd, '\"')]"
           }
-        }
+        },
+        "logstash": {
+          "publisher": "Microsoft.Azure.Extensions",
+          "type": "CustomScript",
+          "typeHandlerVersion": "2.0",
+          "autoUpgradeMinorVersion": true,
+          "settings": {
+            "fileUris": "[variables('ubuntuScripts')]"
+          },
+          "protectedSettings": {
+            "commandToExecute": "[concat('apt-get install mc')]"
+          }
+        }        
       }
     }
   },
