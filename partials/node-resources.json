@@ -234,7 +234,7 @@
       "value": "[reference('kibana').outputs.fqdn.value]",
       "type": "string"
     },
-    "kibana-privateIP": {
+    "kibanaPrivateIP": {
       "value": "[reference('kibana').outputs.privateIP.value]",
       "type": "string"
     },    
