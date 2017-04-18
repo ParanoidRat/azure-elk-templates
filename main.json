@@ -1309,8 +1309,8 @@
       "value": "[reference('virtual-machines').outputs.kibana.value]",
       "type": "string"
     },
-    "kibana-privateIP": {
-      "value": "[reference('virtual-machines').outputs.kibana.value]",
+    "kibanaPrivateIP": {
+      "value": "[reference('virtual-machines').outputs.kibanaPrivateIP.value]",
       "type": "string"
     },    
     "jumpboxssh": {
