@@ -1,7 +1,20 @@
 #!/bin/bash
 
 #########################
-# HELP
+# Global vars
+#########################
+
+LOGSTASH_VERSION="5.3.0"
+INSTALL_ADDITIONAL_PLUGINS=""
+ES_URI="http://10.0.0.4:9200"
+REDIS_HOST="some.domain.com"
+REDIS_PORT="6380"
+REDIS_PASSWORD="ChangeMe"
+REDIS_KEY="logstash"
+
+
+#########################
+# Functions
 #########################
 
 help()
@@ -20,95 +33,10 @@ help()
 
 log()
 {
-    echo \[$(date +%d%m%Y-%H:%M:%S)\] "$1"
-    echo \[$(date +%d%m%Y-%H:%M:%S)\] "$1" >> /var/log/arm-install.log
+    echo \[$(date '+%Y-%m-%d %H:%M:%S')\] "$1"
+    echo \[$(date '+%Y-%m-%d %H:%M:%S')\] "$1" >> /var/log/arm-install.log
 }
 
-log "Begin execution of Logstash script extension on ${HOSTNAME}"
-START_TIME=$SECONDS
-
-export DEBIAN_FRONTEND=noninteractive
-
-#########################
-# Preconditions
-#########################
-
-if [ "${UID}" -ne 0 ];
-then
-    log "Script executed without root permissions"
-    echo "You must be root to run this program." >&2
-    exit 3
-fi
-
-# TEMP FIX - Re-evaluate and remove when possible
-# This is an interim fix for hostname resolution in current VM
-grep -q "${HOSTNAME}" /etc/hosts
-if [ $? == 0 ]
-then
-  log "${HOSTNAME}found in /etc/hosts"
-else
-  log "${HOSTNAME} not found in /etc/hosts"
-  # Append it to the hsots file if not there
-  echo "127.0.0.1 ${HOSTNAME}" >> /etc/hosts
-  log "hostname ${HOSTNAME} added to /etchosts"
-fi
-
-#########################
-# Parameter handling
-#########################
-
-LOGSTASH_VERSION="5.3.0"
-INSTALL_ADDITIONAL_PLUGINS=""
-ES_URI="http://10.0.0.4:9200"
-REDIS_HOST="some.domain.com"
-REDIS_PORT="6380"
-REDIS_PASSWORD="ChangeMe"
-REDIS_KEY="logstash"
-
-#Loop through options passed
-while getopts :V:L:U:R:P:W:K:h optname; do
-  log "Option $optname set"
-  case $optname in
-    V) #Logstash version number
-      LOGSTASH_VERSION=${OPTARG}
-      ;;
-    L) #install additional plugins
-      INSTALL_ADDITIONAL_PLUGINS="${OPTARG}"
-      ;;
-    U) #install additional plugins
-      ES_URI="${OPTARG}"
-      ;;
-    R) #Redis host
-      REDIS_HOST="${OPTARG}"
-      ;;
-    P) #Redis port
-      REDIS_PORT="${OPTARG}"
-      ;;
-    W) #Redis password
-      REDIS_PASSWORD="${OPTARG}"
-    K) #Redis list/channel
-      REDIS_KEY="${OPTARG}"
-      ;;
-    h) #show help
-      help
-      exit 2
-      ;;
-    \?) #unrecognized option - show help
-      echo -e \\n"Option -${BOLD}$OPTARG${NORM} not allowed."
-      help
-      exit 2
-      ;;
-  esac
-done
-
-log "Bootstrapping Logstash $LOGSTASH_VERSION"
-
-
-#########################
-# Installation steps as functions
-#########################
-
-# Install Oracle Java
 install_java()
 {
     log "[install_java] Adding apt repository for java 8"
@@ -145,7 +73,6 @@ install_java()
     command -v java >/dev/null 2>&1 || { log "Java did not get installed properly even after a retry and a forced installation" >&2; exit 50; }
 }
 
-# Install Logstash
 install_logstash()
 {
     if [[ "${LOGSTASH_VERSION}" == \2* ]]; then
@@ -166,9 +93,6 @@ install_logstash()
     log "[install_logstash] Disable logstash System-V style init scripts (will be using monit)"
     sudo update-rc.d logstash disable
 }
-
-## Plugins
-##----------------------------------
 
 plugin_cmd()
 {
@@ -194,10 +118,6 @@ install_additional_plugins()
         fi
     done
 }
-
-
-## Configuration
-##----------------------------------
 
 configure_logstash_yml()
 {
@@ -241,12 +161,6 @@ configure_logstash_yml()
     fi 
 }
 
-
-
-
-## Installation of dependencies
-##----------------------------------
-
 install_ntp()
 {
     log "[install_ntp] installing ntp daemon"
@@ -287,13 +201,90 @@ start_monit()
     log "[start_monit] started monit"
 }
 
+#########################
+# Main
+#########################
+
+log "Logstash extension script started @${HOSTNAME}"
+START_TIME=$SECONDS
+
+export DEBIAN_FRONTEND=noninteractive
+
+
+#########################
+# Parameter handling
+#########################
+
+#Loop through options passed
+while getopts :V:L:U:R:P:W:K:h optname; do
+  log "Option $optname set"
+  case $optname in
+    V) #Logstash version number
+      LOGSTASH_VERSION=${OPTARG}
+      ;;
+    L) #install additional plugins
+      INSTALL_ADDITIONAL_PLUGINS="${OPTARG}"
+      ;;
+    U) #install additional plugins
+      ES_URI="${OPTARG}"
+      ;;
+    R) #Redis host
+      REDIS_HOST="${OPTARG}"
+      ;;
+    P) #Redis port
+      REDIS_PORT="${OPTARG}"
+      ;;
+    W) #Redis password
+      REDIS_PASSWORD="${OPTARG}"
+    K) #Redis list/channel
+      REDIS_KEY="${OPTARG}"
+      ;;
+    h) #show help
+      help
+      exit 2
+      ;;
+    \?) #unrecognized option - show help
+      echo -e \\n"Option -${BOLD}$OPTARG${NORM} not allowed."
+      help
+      exit 2
+      ;;
+  esac
+done
+
+
+#########################
+# Check requirements
+#########################
+
+if [ "${UID}" -ne 0 ];
+then
+    log "Script executed without root permissions"
+    echo "You must be root to run this program." >&2
+    exit 3
+fi
+
+# TEMP FIX - Re-evaluate and remove when possible
+# This is an interim fix for hostname resolution in current VM
+grep -q "${HOSTNAME}" /etc/hosts
+if [ $? == 0 ]
+then
+  log "${HOSTNAME}found in /etc/hosts"
+else
+  log "${HOSTNAME} not found in /etc/hosts"
+  # Append it to the hsots file if not there
+  echo "127.0.0.1 ${HOSTNAME}" >> /etc/hosts
+  log "hostname ${HOSTNAME} added to /etchosts"
+fi
+
+log "Bootstrapping Logstash $LOGSTASH_VERSION"
+
 
 #########################
 # Installation sequence
 #########################
 
 
-# if elasticsearch is already installed assume this is a redeploy
+# if logstash is already installed assume this is a redeploy
 # change yaml configuration and only restart the server when needed
 if sudo monit status logstash >& /dev/null; then
 
@@ -305,24 +296,30 @@ if sudo monit status logstash >& /dev/null; then
 
   exit 0
 fi
-install_ntp
 
+# install dependencies
+install_ntp
 install_java
 
+# install logstash 
 install_logstash
 
+# install additional plugins for logstash if necessary
 if [[ ! -z "${INSTALL_ADDITIONAL_PLUGINS// }" ]]; then
     install_additional_plugins
 fi
 
+# install monit to make sure logstash is always running
 install_monit
 
+# configure logstash
 configure_logstash_yml
 
+# start monit daemon and logstash
 start_monit
 
 ELAPSED_TIME=$(($SECONDS - $START_TIME))
 PRETTY=$(printf '%dh:%dm:%ds\n' $(($ELAPSED_TIME/3600)) $(($ELAPSED_TIME%3600/60)) $(($ELAPSED_TIME%60)))
 
-log "End execution of Logstash script extension on ${HOSTNAME} in ${PRETTY}"
+log "Logstash extension script ended @${HOSTNAME} in ${PRETTY}"
 exit 0
