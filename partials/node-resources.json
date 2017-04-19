@@ -55,7 +55,8 @@
     ],
     "clientResourceIndex": "[mod(add(parameters('topologySettings').vmClientNodeCount,2),add(parameters('topologySettings').vmClientNodeCount,1))]",
     "clientTemplateUrl": "[concat(parameters('templateBaseUrl'), variables('clientTemplates')[variables('clientResourceIndex')])]",
-    "dataTemplateUrl": "[concat(parameters('templateBaseUrl'), 'datanodes/data-node-', string(parameters('topologySettings').dataNodeStorageSettings.dataDisks), 'disk-resources.json')]"
+    "dataTemplateUrl": "[concat(parameters('templateBaseUrl'), 'datanodes/data-node-', string(parameters('topologySettings').dataNodeStorageSettings.dataDisks), 'disk-resources.json')]",
+    "logstashTemplateUrl": "[concat(parameters('templateBaseUrl'), 'machines/logstash-resources.json')]"
   },
   "resources": [
     {
@@ -147,6 +148,35 @@
           },
           "storageSettings": {
             "value": "[parameters('topologySettings').dataNodeStorageSettings]"
+          }
+        }
+      }
+    },
+    {
+      "name": "logstash-nodes",
+      "type": "Microsoft.Resources/deployments",
+      "apiVersion": "2016-02-01",
+      "dependsOn": [
+      ],
+      "properties": {
+        "mode": "Incremental",
+        "templateLink": {
+          "uri": "[variables('logstashTemplateUrl')]",
+          "contentVersion": "1.0.0.0"
+        },
+        "parameters": {
+          "templateBaseUrl": { "value": "[parameters('templateBaseUrl')]" },
+          "vm": {
+            "value": {
+              "shared": "[parameters('commonVmSettings')]",
+              "namespace": "[concat(parameters('commonVmSettings').namespacePrefix, 'logstash-')]",
+              "installScript": "[parameters('osSettings').extensionSettings.logstash]",
+              "size": "[parameters('topologySettings').vmSizeLogstash]",
+              "count": "[parameters('topologySettings').vmCountLogstash]",
+              "subnetId": "[concat(resourceId(parameters('networkSettings').resourceGroup, 'Microsoft.Network/virtualNetworks', parameters('networkSettings').name), '/subnets/', parameters('networkSettings').logstashSubnet.name)]",
+              "backendPools": [],
+              "imageReference": "[parameters('osSettings').imageReference]"
+            }
           }
         }
       }

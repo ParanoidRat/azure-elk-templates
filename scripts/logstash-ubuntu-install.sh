@@ -11,6 +11,10 @@ help()
     echo "-V <version> Logstash version (e.g. 5.3.0)"
     echo "-L <plugin;plugin> install additional plugins"
     echo "-U <uri> Elasticsearch URI for output (e.g. http://10.0.0.4:9200)"
+    echo "-R <host> Redis host for Logstash input (e.g. some.domain.com)"
+    echo "-P <port> Redis SSL port for Logstash input (e.g. 6380)"
+    echo "-W <password> Redis password Logstash input (e.g. ChageMe)"
+    echo "-K <key> Redis list or channel name for Logstash to read inputs (e.g. logstash)"
     echo "-h view this help content"
 }
 
@@ -56,9 +60,13 @@ fi
 LOGSTASH_VERSION="5.3.0"
 INSTALL_ADDITIONAL_PLUGINS=""
 ES_URI="http://10.0.0.4:9200"
+REDIS_HOST="some.domain.com"
+REDIS_PORT="6380"
+REDIS_PASSWORD="ChangeMe"
+REDIS_KEY="logstash"
 
 #Loop through options passed
-while getopts :V:L:U:h optname; do
+while getopts :V:L:U:R:P:W:K:h optname; do
   log "Option $optname set"
   case $optname in
     V) #Logstash version number
@@ -69,7 +77,18 @@ while getopts :V:L:U:h optname; do
       ;;
     U) #install additional plugins
       ES_URI="${OPTARG}"
-      ;;    
+      ;;
+    R) #Redis host
+      REDIS_HOST="${OPTARG}"
+      ;;
+    P) #Redis port
+      REDIS_PORT="${OPTARG}"
+      ;;
+    W) #Redis password
+      REDIS_PASSWORD="${OPTARG}"
+    K) #Redis list/channel
+      REDIS_KEY="${OPTARG}"
+      ;;
     h) #show help
       help
       exit 2
@@ -193,8 +212,18 @@ configure_logstash_yml()
     log "[configure_logstash_yml] Pointing output to $ES_URI"
     if [[ "${ES_VERSION}" == \5* ]]; then
       {
+          echo -e "# Get input from Redis bufffer"
+          echo -e "input {"
+          echo -e "  redis {"
+          echo -e "    host => \"$REDIS_HOST\""
+          echo -e "    port => \"$REDIS_PORT\""
+          echo -e "    password => \"$REDIS_PASSWORD\""
+          echo -e "    data_type => \"channel\""
+          echo -e "    key => \"$REDIS_KEY\""
+          echo -e "  }"
+          echo -e "}"
           echo -e ""
-          echo -e "# output to Elasticsearch cluster"
+          echo -e "# Send output to Elasticsearch cluster"
           echo -e "output {"
           echo -e "  elasticsearch { hosts => [\"$ES_URI\"] }"
           echo -e "}"
@@ -230,16 +259,23 @@ install_monit()
 {
     log "[install_monit] installing monit"
     (apt-get -yq install monit || (sleep 15; apt-get -yq install monit))
-    echo "set daemon 30" >> /etc/monit/monitrc
-    echo "set httpd port 2812 and" >> /etc/monit/monitrc
-    echo "    use address localhost" >> /etc/monit/monitrc
-    echo "    allow localhost" >> /etc/monit/monitrc
-    sudo touch /etc/monit/conf.d/logstash.conf
-    echo "check process logstash with pidfile \"/var/run/logstash/logstash.pid\"" >> /etc/monit/conf.d/logstash.conf
-    echo "  group logstash" >> /etc/monit/conf.d/logstash.conf
-    echo "  start program = \"/etc/init.d/logstash start\"" >> /etc/monit/conf.d/logstash.conf
-    echo "  stop program = \"/etc/init.d/logstash stop\"" >> /etc/monit/conf.d/logstash.conf
     log "[install_monit] installed monit"
+
+    local MONIT_CONF=/etc/monit/monitrc
+    log "[install_monit] Appending Monit $MONIT_CONF"
+    echo "set daemon 30" >> $MONIT_CONF
+    echo "set httpd port 2812 and" >> $MONIT_CONF
+    echo "    use address localhost" >> $MONIT_CONF
+    echo "    allow localhost" >> $MONIT_CONF
+
+    local MONIT_LS_CONF=/etc/monit/conf.d/logstash.conf
+    log "[install_monit] Creating Monit config for Logstash $MONIT_LS_CONF"
+    sudo touch $MONIT_LS_CONF
+    echo "check process logstash with pidfile \"/var/run/logstash/logstash.pid\"" >> $MONIT_LS_CONF
+    echo "  group logstash" >> $MONIT_LS_CONF
+    echo "  start program = \"/etc/init.d/logstash start\"" >> $MONIT_LS_CONF
+    echo "  stop program = \"/etc/init.d/logstash stop\"" >> $MONIT_LS_CONF
+    log "[install_monit] configured monit"
 }
 
 start_monit()
@@ -263,7 +299,7 @@ if sudo monit status logstash >& /dev/null; then
 
   configure_logstash_yml
 
-  # restart elasticsearch if the configuration has changed
+  # restart logstash if the configuration has changed
   cmp --silent /etc/logstash/logstash.yml /etc/logstash/logstash.bak \
     || sudo monit restart logstash
 
@@ -288,5 +324,5 @@ start_monit
 ELAPSED_TIME=$(($SECONDS - $START_TIME))
 PRETTY=$(printf '%dh:%dm:%ds\n' $(($ELAPSED_TIME/3600)) $(($ELAPSED_TIME%3600/60)) $(($ELAPSED_TIME%60)))
 
-log "End execution of Elasticsearch script extension on ${HOSTNAME} in ${PRETTY}"
+log "End execution of Logstash script extension on ${HOSTNAME} in ${PRETTY}"
 exit 0
