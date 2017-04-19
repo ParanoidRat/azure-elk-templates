@@ -75,11 +75,11 @@
       "type": "int"
     },    
     "redisPrimaryKey": {
-      "value": "[reference(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName'))).accessKeys.primaryKey]",
+      "value": "[listKeys(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName')), '2015-08-01').primaryKey]",
       "type": "string"
     },
     "redisSecondaryKey": {
-      "value": "[reference(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName'))).accessKeys.secondaryKey]",
+      "value": "[listKeys(resourceId('Microsoft.Cache/Redis', parameters('redisCacheName')), '2015-08-01').secondaryKey]",
       "type": "string"
     }
   }  
