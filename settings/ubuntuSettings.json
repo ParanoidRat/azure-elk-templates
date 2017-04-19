@@ -154,7 +154,7 @@
             "fileUris": "[variables('ubuntuScripts')]"
           },
           "protectedSettings": {
-            "commandToExecute": "[concat('sudo apt-get -yq install mc')]"
+            "commandToExecute": "[concat('')]"
           }
         }        
       }
