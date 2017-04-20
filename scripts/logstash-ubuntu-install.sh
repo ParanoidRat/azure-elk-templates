@@ -7,7 +7,7 @@ IFS=$'\n\t'
 #########################
 # Global vars
 #########################
-DEBUG=1
+DEBUG=0
 
 # Script parameters
 LOGSTASH_VERSION="5.3.0"
@@ -115,7 +115,6 @@ install_logstash()
     log "[install_logstash] Installing logstash-$LOGSTASH_VERSION.deb ..."
     run_cmd "(dpkg -i logstash-$LOGSTASH_VERSION.deb)"
 
-
     if [[ "${LOGSTASH_VERSION}" == \2* ]]; then
       log "[install_logstash] Disable Logstash SysV init scripts (will be using monit)"
       run_cmd "(update-rc.d logstash disable)"
@@ -166,6 +165,7 @@ configure_logstash()
         echo -e "    password => \"$REDIS_PASSWORD\""
         echo -e "    data_type => \"channel\""
         echo -e "    key => \"$REDIS_KEY\""
+        echo -e "    threads => 4"
         echo -e "  }"
         echo -e "}"
     ) > $LS_CONF_R
@@ -205,7 +205,7 @@ configure_monit_logstash()
 {
     local MONIT_CONF=/etc/monit/conf.d/logstash.conf
     
-    log "[configure_monit_logstash] Generating Logstash config for Monit @ $MONIT_CONF"
+    log "[configure_monit_logstash] Generating logstash conf for monit @ $MONIT_CONF"
     run_cmd "(touch $MONIT_CONF)"
     {
         echo -e "check process logstash matching \"logstash/runner.rb\""
@@ -214,7 +214,7 @@ configure_monit_logstash()
         echo -e "  stop program = \"/bin/systemctl stop logstash.service\""
     } > $MONIT_CONF      
 
-    log "[configure_monit_logstash] Reloading Monit and starting services..."
+    log "[configure_monit_logstash] Reloading monit and starting logstash services..."
     run_cmd "(monit reload)"
     run_cmd "(monit start logstash)"
 }
@@ -223,7 +223,7 @@ configure_monit_stunnel()
 {
     local MONIT_CONF=/etc/monit/conf.d/stunnel-az-redis.conf
     
-    log "[configure_monit_stunnel] Generating stunnel config for Monit @ $MONIT_CONF"
+    log "[configure_monit_stunnel] Generating stunnel conf for monit @ $MONIT_CONF"
     run_cmd "(touch $MONIT_CONF)"
     {
         echo -e "check process stunnel_az_redis with pidfile /var/run/stunnel4/az-redis.pid"
@@ -232,7 +232,7 @@ configure_monit_stunnel()
         echo -e "  stop program = \"/bin/systemctl stop stunnel4.service\""
     } > $MONIT_CONF      
 
-    log "[configure_monit_stunnel] Reloading Monit and starting services..."
+    log "[configure_monit_stunnel] Reloading monit and starting stunnel services..."
     run_cmd "(monit reload)"
     run_cmd "(monit start stunnel_az_redis)"
 }
@@ -263,9 +263,10 @@ install_stunnel()
         echo -e "  connect = $REDIS_HOST:$REDIS_PORT"
     } > $ST_AZ_REDIS_CONF
 
-    log "[install_stunnel] Starting stunnel..."
-    run_cmd "(systemctl start monit.service)"
+    local ST_DEFAULT=/etc/default/stunnel
 
+    log "[install_stunnel] Enabling tunnels in main config @ $ST_DEFAULT ..."
+    run_cmd "(sed -i.bak s/ENABLED=0/ENABLED=1/g $ST_DEFAULT)"
 }
 
 fix_hostname()
@@ -388,9 +389,8 @@ fi
 configure_logstash
 
 configure_monit_stunnel
-# Logstash started by SystemD (Ubuntu 16.04) does not record main Java process PID.
-# As such, Monit could not reliably detect parent Logstash threat and manage it
-#configure_logstash_monit
+
+configure_monit_logstash
 
 ELAPSED_TIME=$(($SECONDS - $START_TIME))
 PRETTY=$(printf '%dh:%dm:%ds\n' $(($ELAPSED_TIME/3600)) $(($ELAPSED_TIME%3600/60)) $(($ELAPSED_TIME%60)))
