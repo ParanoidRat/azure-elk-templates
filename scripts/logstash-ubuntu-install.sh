@@ -267,6 +267,9 @@ install_stunnel()
 
     log "[install_stunnel] Enabling tunnels in main config @ $ST_DEFAULT ..."
     run_cmd "(sed -i.bak s/ENABLED=0/ENABLED=1/g $ST_DEFAULT)"
+
+    log "[install_stunnel] Starting stunnel main daemon..."
+    run_cmd "(systemctl start stunnel4.service)"
 }
 
 fix_hostname()
