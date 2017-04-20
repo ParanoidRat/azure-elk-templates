@@ -1441,6 +1441,14 @@
           },
           "azureCloudStorageAccount": {
             "value": "[variables('azureCloudStorageAccount')]"
+          },
+          "redisSettings": {
+            "value": {
+              "redisHost": "[reference('redis-cache').outputs.redisHost.value]",
+              "redisPort": "[reference('redis-cache').outputs.redisPort.value]",
+              "redisPrimaryKey": "[reference('redis-cache').outputs.redisPrimaryKey.value]",
+              "redisSecondaryKey": "[reference('redis-cache').outputs.redisSecondaryKey.value]"
+            }
           }
         }
       }

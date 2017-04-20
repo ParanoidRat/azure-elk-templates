@@ -43,6 +43,12 @@
           "metadata": {
               "description": "The storage settings for the Azure Cloud plugin"
           }
+      },
+      "redisSettings": {
+          "type": "object",
+          "metadata": {
+              "description": "Redis connectivity settings for Logstash nodes"
+          }
       }
   },
   "variables": {
@@ -155,7 +161,7 @@
             "fileUris": "[variables('ubuntuScripts')]"
           },
           "protectedSettings": {
-            "commandToExecute": "[concat('bash empty.sh')]"
+            "commandToExecute": "[concat('bash logstash-ubuntu-install.sh', ' -V ', parameters('esSettings').version, ' -R ', parameters('redisSettings').redisHost, ' -P ', parameters('redisSettings').redisPort, ' -W ', '\"', parameters('redisSettings').redisPrimaryKey, '\"')]"
           }
         }        
       }
