@@ -7,7 +7,7 @@ IFS=$'\n\t'
 #########################
 # Global vars
 #########################
-DEBUG=0
+DEBUG=1
 
 # Script parameters
 LOGSTASH_VERSION="5.3.0"
@@ -50,9 +50,9 @@ run_cmd()
   (
     # execute command
     if eval "$@"; then
-      if [ $DEBUG ]; then log "[run_cmd]$[+] $@"; fi  
+      if [ $DEBUG ]; then log "[run_cmd][+] $@"; fi
     else
-      log "[run_cmd] [run_cmd]${BOLD}[!] $@"
+      log "[run_cmd] [run_cmd][!] $@"
     fi
   )
   # re-enable the exit-immediately-on-error option
@@ -221,7 +221,7 @@ configure_monit_logstash()
 
 configure_monit_stunnel()
 {
-    local MONIT_CONF=/etc/monit/conf.d/stunnel-az-redis.conf
+    local MONIT_CONF=/etc/monit/conf.d/stunnel.conf
     
     log "[configure_monit_stunnel] Generating stunnel conf for monit @ $MONIT_CONF"
     run_cmd "(touch $MONIT_CONF)"
@@ -234,12 +234,12 @@ configure_monit_stunnel()
 
     log "[configure_monit_stunnel] Reloading monit and starting stunnel services..."
     run_cmd "(monit reload)"
-    run_cmd "(monit start stunnel_az_redis)"
+    run_cmd "(monit start stunnel)"
 }
 
 install_stunnel()
 {
-    local ST_AZ_REDIS_CONF=/etc/stunnel/stunnel-az-redis.conf
+    local ST_AZ_REDIS_CONF=/etc/stunnel/az-redis.conf
 
     log "[install_stunnel] Stunnel install started..."
     run_cmd "(apt-get -yq install stunnel || (sleep 15; apt-get -yq install stunnel))"
@@ -263,7 +263,7 @@ install_stunnel()
         echo -e "  connect = $REDIS_HOST:$REDIS_PORT"
     } > $ST_AZ_REDIS_CONF
 
-    local ST_DEFAULT=/etc/default/stunnel
+    local ST_DEFAULT=/etc/default/stunnel4
 
     log "[install_stunnel] Enabling tunnels in main config @ $ST_DEFAULT ..."
     run_cmd "(sed -i.bak s/ENABLED=0/ENABLED=1/g $ST_DEFAULT)"
