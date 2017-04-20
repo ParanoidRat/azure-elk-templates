@@ -154,18 +154,18 @@ install_additional_plugins()
     done
 }
 
-configure_logstash_yml()
+configure_logstash()
 {
-    local LOGSTASH_CONF=/etc/logstash/logstash.yml
+    local LOGSTASH_CONF=/etc/logstash/conf.d/100.redis.conf
 
-    log "[configure_logstash_yml] Logstash configuration started..."
+    log "[configure_logstash] Logstash configuration started..."
 
-    log "[configure_logstash_yml] Backup old $LOGSTASH_CONF"
+    log "[configure_logstash] Backup old $LOGSTASH_CONF"
     mv $LOGSTASH_CONF $LOGSTASH_CONF.bak
 
-    log "[configure_logstash_yml] Redis input defined as '$REDIS_HOST:$REDIS_PORT'"
-    log "[configure_logstash_yml] Redis channel defined as '$REDIS_KEY'"
-    log "[configure_logstash_yml] Elasticsearch output URI defined as '$ES_URI'"
+    log "[configure_logstash] Redis input defined as '$REDIS_HOST:$REDIS_PORT'"
+    log "[configure_logstash] Redis channel defined as '$REDIS_KEY'"
+    log "[configure_logstash] Elasticsearch output URI defined as '$ES_URI'"
 
     if [[ "${LOGSTASH_VERSION}" == \5* ]]; then
       {
@@ -341,7 +341,7 @@ log "Bootstrapping Logstash..."
 # if logstash is already installed assume this is a redeploy
 # change yaml configuration and only restart the server when needed
 if monit status logstash >& /dev/null; then
-  configure_logstash_yml
+  configure_logstash
 
   # restart logstash if the configuration has changed
   cmp --silent /etc/logstash/logstash.yml /etc/logstash/logstash.bak \
@@ -363,7 +363,7 @@ if [[ ! -z "${INSTALL_ADDITIONAL_PLUGINS// }" ]]; then
     install_additional_plugins
 fi
 
-configure_logstash_yml
+configure_logstash
 
 # Logstash started by SystemD (Ubuntu 16.04) does not record main Java process PID.
 # As such, Monit could not reliably monitor it
