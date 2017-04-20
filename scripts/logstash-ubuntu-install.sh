@@ -9,12 +9,6 @@ IFS=$'\n\t'
 #########################
 DEBUG=1
 
-# Console output text colors
-BOLD=$(tty -s && tput bold)
-RED=$(tty -s && tput setaf 1)
-GREEN=$(tty -s && tput setaf 2)
-NORMAL=$(tty -s && tput sgr0)
-
 # Script parameters
 LOGSTASH_VERSION="5.3.0"
 INSTALL_ADDITIONAL_PLUGINS=""
@@ -56,9 +50,9 @@ run_cmd()
   (
     # execute command
     if eval "$@"; then
-      if [ $DEBUG ]; then log "[run_cmd]${GREEN}[+] $@ ${NORMAL}"; fi  
+      if [ $DEBUG ]; then log "[run_cmd]$[+] $@"; fi  
     else
-      log "[run_cmd] [run_cmd]${BOLD}${RED}[!] $@ ${NORMAL}"
+      log "[run_cmd] [run_cmd]${BOLD}[!] $@"
     fi
   )
   # re-enable the exit-immediately-on-error option
@@ -349,7 +343,7 @@ while getopts :V:L:U:R:P:W:K:h optname; do
       exit 2
       ;;
     \?) #unrecognized option - show help
-      echo -e \\n"Option -${BOLD}$OPTARG${NORMAL} not allowed."
+      echo -e \\n"Option -$OPTARG$ not allowed."
       help
       exit 2
       ;;
