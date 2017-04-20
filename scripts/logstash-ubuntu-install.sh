@@ -10,10 +10,10 @@ IFS=$'\n\t'
 DEBUG=1
 
 # Console output text colors
-BOLD=$(tput bold)
-RED=$(tput setaf 1)
-GREEN=$(tput setaf 2)
-NORMAL=$(tput sgr0)
+BOLD=$(tty -s && tput bold)
+RED=$(tty -s && tput setaf 1)
+GREEN=$(tty -s && tput setaf 2)
+NORMAL=$(tty -s && tput sgr0)
 
 # Script parameters
 LOGSTASH_VERSION="5.3.0"
