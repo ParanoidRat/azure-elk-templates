@@ -156,95 +156,120 @@ install_additional_plugins()
 
 configure_logstash()
 {
-    local LOGSTASH_CONF=/etc/logstash/conf.d/100.redis.conf
+    local LS_CONF_R=/etc/logstash/conf.d/010-redis-input.conf
+    local LS_CONF_ES=/etc/logstash/conf.d/020-elastic-output.conf
 
     log "[configure_logstash] Logstash configuration started..."
 
-    log "[configure_logstash] Backup old $LOGSTASH_CONF"
-    mv $LOGSTASH_CONF $LOGSTASH_CONF.bak
-
-    log "[configure_logstash] Redis input defined as '$REDIS_HOST:$REDIS_PORT'"
+    log "[configure_logstash] Generating $LS_CONF_R..."
+    log "[configure_logstash] Redis defined as '$REDIS_HOST:$REDIS_PORT'"
     log "[configure_logstash] Redis channel defined as '$REDIS_KEY'"
+    (
+        echo -e "input {"
+        echo -e "  redis {"
+        echo -e "    host => \"localhost\""
+        echo -e "    port => \"6379\""
+        echo -e "    password => \"$REDIS_PASSWORD\""
+        echo -e "    data_type => \"channel\""
+        echo -e "    key => \"$REDIS_KEY\""
+        echo -e "  }"
+        echo -e "}"
+    ) > $LS_CONF_R
+
+    log "[configure_logstash] Generating $LS_CONF_ES..."
     log "[configure_logstash] Elasticsearch output URI defined as '$ES_URI'"
-
-    if [[ "${LOGSTASH_VERSION}" == \5* ]]; then
-      {
-          echo -e "# Get input from Redis bufffer"
-          echo -e "input {"
-          echo -e "  redis {"
-          echo -e "    host => \"$REDIS_HOST\""
-          echo -e "    port => \"$REDIS_PORT\""
-          echo -e "    password => \"$REDIS_PASSWORD\""
-          echo -e "    data_type => \"channel\""
-          echo -e "    key => \"$REDIS_KEY\""
-          echo -e "  }"
-          echo -e "}"
-          echo -e ""
-          echo -e "# Send output to Elasticsearch cluster"
-          echo -e "output {"
-          echo -e "  elasticsearch { hosts => [\"$ES_URI\"] }"
-          echo -e "}"
-          echo -e ""
-      } >> $LOGSTASH_CONF
-    else
-      {
-          echo -e "# Get input from Redis bufffer"
-          echo -e "input {"
-          echo -e "  redis {"
-          echo -e "    host => \"$REDIS_HOST\""
-          echo -e "    port => \"$REDIS_PORT\""
-          echo -e "    password => \"$REDIS_PASSWORD\""
-          echo -e "    data_type => \"channel\""
-          echo -e "    key => \"$REDIS_KEY\""
-          echo -e "  }"
-          echo -e "}"
-          echo -e ""
-          echo -e "# Send output to Elasticsearch cluster"
-          echo -e "output {"
-          echo -e "  elasticsearch { hosts => [\"$ES_URI\"] }"
-          echo -e "}"
-          echo -e ""
-      } >> $LOGSTASH_CONF
-    fi 
-}
-
-configure_logstash_monit()
-{
-    local MONIT_LS_CONF=/etc/monit/conf.d/logstash.conf
-    
-    log "[configure_logstash_monit] Generating Logstash config for Monit @ $MONIT_LS_CONF"
-    run_cmd "(touch $MONIT_LS_CONF)"
-    {
-      echo -e "check process logstash matching \"logstash/runner.rb\""
-      echo -e "  group logstash"
-      echo -e "  start program = \"/bin/systemctl start logstash.service\""
-      echo -e "  stop program = \"/bin/systemctl start logstash.service\""
-    } > $MONIT_LS_CONF      
-
-    log "[configure_logstash_monit] Reloading Monit and starting services..."
-    run_cmd "(monit reload)"
-    run_cmd "(monit start all)"
+    (
+        echo -e "output {"
+        echo -e "  elasticsearch {"
+        echo -e "    hosts => [\"$ES_URI\"]"
+        echo -e "  }"
+        echo -e "}"
+    ) > $LS_CONF_ES    
 }
 
 install_monit()
 {
     local MONIT_CONF=/etc/monit/monitrc
 
-
     log "[install_monit] Monit install started..."
     run_cmd "(apt-get -yq install monit || (sleep 15; apt-get -yq install monit))"
     
-    log "[install_monit] Appending Monit configuration @ $MONIT_CONF ..."
+    log "[install_monit] Appending Monit config @ $MONIT_CONF ..."
     {
-      echo -e "set daemon 30"
-      echo -e "set httpd port 2812 and"
-      echo -e "    use address localhost"
-      echo -e "    allow localhost" 
+        echo -e "set daemon 30"
+        echo -e "set httpd port 2812 and"
+        echo -e "    use address localhost"
+        echo -e "    allow localhost" 
     } >> $MONIT_CONF
 
-    
-
     log "[install_monit] Starting monit..."
+    run_cmd "(systemctl start monit.service)"
+
+}
+
+configure_monit_logstash()
+{
+    local MONIT_CONF=/etc/monit/conf.d/logstash.conf
+    
+    log "[configure_monit_logstash] Generating Logstash config for Monit @ $MONIT_CONF"
+    run_cmd "(touch $MONIT_CONF)"
+    {
+        echo -e "check process logstash matching \"logstash/runner.rb\""
+        echo -e "  group logstash"
+        echo -e "  start program = \"/bin/systemctl start logstash.service\""
+        echo -e "  stop program = \"/bin/systemctl stop logstash.service\""
+    } > $MONIT_CONF      
+
+    log "[configure_monit_logstash] Reloading Monit and starting services..."
+    run_cmd "(monit reload)"
+    run_cmd "(monit start logstash)"
+}
+
+configure_monit_stunnel()
+{
+    local MONIT_CONF=/etc/monit/conf.d/stunnel-az-redis.conf
+    
+    log "[configure_monit_stunnel] Generating stunnel config for Monit @ $MONIT_CONF"
+    run_cmd "(touch $MONIT_CONF)"
+    {
+        echo -e "check process stunnel_az_redis with pidfile /var/run/stunnel4/az-redis.pid"
+        echo -e "  group stunnel_redis"
+        echo -e "  start program = \"/bin/systemctl start stunnel4.service\""
+        echo -e "  stop program = \"/bin/systemctl stop stunnel4.service\""
+    } > $MONIT_CONF      
+
+    log "[configure_monit_stunnel] Reloading Monit and starting services..."
+    run_cmd "(monit reload)"
+    run_cmd "(monit start stunnel_az_redis)"
+}
+
+install_stunnel()
+{
+    local ST_AZ_REDIS_CONF=/etc/stunnel/stunnel-az-redis.conf
+
+    log "[install_stunnel] Stunnel install started..."
+    run_cmd "(apt-get -yq install stunnel || (sleep 15; apt-get -yq install stunnel))"
+    
+    log "[install_stunnel] Generating stunnel config @ $ST_AZ_REDIS_CONF ..."
+    {
+        echo -e "setuid = stunnel4"
+        echo -e "setgid = stunnel4"
+        echo -e ""
+        echo -e "pid = /var/run/stunnel4/az-redis.pid"
+        echo -e ""
+        echo -e "debug = notice"
+        echo -e "output = /var/log/stunnel4/az-redis.log"
+        echo -e ""
+        echo -e "options = NO_SSLv2"
+        echo -e "options = NO_SSLv3"
+        echo -e ""
+        echo -e "[az-redis]"
+        echo -e "  client = yes"
+        echo -e "  accept = localhost:6379"
+        echo -e "  connect = $REDIS_HOST:$REDIS_PORT"
+    } > $ST_AZ_REDIS_CONF
+
+    log "[install_stunnel] Starting stunnel..."
     run_cmd "(systemctl start monit.service)"
 
 }
@@ -253,10 +278,9 @@ fix_hostname()
 {
   log "Fixing hostname in /etc/hosts..."
   
-  set -e
+  set +e
   (
     grep -q "${HOSTNAME}" /etc/hosts
-  )
 
   if [ $? == 0 ]; then
     log "${HOSTNAME} found in /etc/hosts"
@@ -266,6 +290,8 @@ fix_hostname()
     run_cmd "(echo \"127.0.0.1 ${HOSTNAME}\" >> /etc/hosts)"
     log "hostname ${HOSTNAME} added to /etc/hosts"
   fi
+  )
+  set -e
 }
 
 #########################
@@ -354,6 +380,8 @@ fix_hostname
 
 install_monit
 
+install_stunnel
+
 install_java
 
 install_logstash
@@ -365,8 +393,9 @@ fi
 
 configure_logstash
 
+configure_monit_stunnel
 # Logstash started by SystemD (Ubuntu 16.04) does not record main Java process PID.
-# As such, Monit could not reliably monitor it
+# As such, Monit could not reliably detect parent Logstash threat and manage it
 #configure_logstash_monit
 
 ELAPSED_TIME=$(($SECONDS - $START_TIME))
