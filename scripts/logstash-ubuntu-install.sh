@@ -33,7 +33,7 @@ help()
     echo "-R <host> Redis host for Logstash input (e.g. some.domain.com)"
     echo "-P <port> Redis SSL port for Logstash input (e.g. 6380)"
     echo "-W <password> Redis password Logstash input (e.g. ChageMe)"
-    echo "-K <key> Redis list or channel name for Logstash to read inputs (e.g. logstash)"
+    echo "-K <key> Redis list name for Logstash to read inputs (e.g. logstash)"
     echo "-h view this help content"
 }
 
@@ -163,7 +163,7 @@ configure_logstash()
         echo -e "    host => \"localhost\""
         echo -e "    port => \"6379\""
         echo -e "    password => \"$REDIS_PASSWORD\""
-        echo -e "    data_type => \"channel\""
+        echo -e "    data_type => \"list\""
         echo -e "    key => \"$REDIS_KEY\""
         echo -e "    threads => 4"
         echo -e "  }"
