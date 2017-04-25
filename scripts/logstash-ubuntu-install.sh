@@ -52,11 +52,55 @@ run_cmd()
     if eval "$@"; then
       if [ $DEBUG ]; then log "[run_cmd][+] $@"; fi
     else
-      log "[run_cmd] [run_cmd][!] $@"
+      log "[run_cmd][!] $@"
     fi
   )
   # re-enable the exit-immediately-on-error option
   set -e
+}
+
+check_install_pkg()
+{
+    local RETRY_T="15"
+
+    log "[check_install_pkg_$@] Checking if '$@' is installed ..."
+    set +e
+    (
+      if $(dpkg-query -W -f='${Status}' $@ 2>/dev/null | grep -q '^install ok installed$'); then
+        log "[install_$@]   '$@' already present..."
+        return
+      else
+        log "[check_install_pkg_$@]   Installing '$@' ..."
+        run_cmd "(apt-get -yq install $@ || (sleep $RETRY_T; apt-get -yq install $@))"
+      fi
+    )
+    set -e
+}
+
+check_start_service()
+{
+    local RETRY_T="5"
+    local RETRY_N="3"
+
+    log "[check_start_service_$@] Checking for running service '$@' ..."
+    set +e
+    (
+      if $(systemctl is-active $@.service >/dev/null); then
+        log "[check_start_service_$@]   Service '$@' already running, moving on..."
+        return
+      else
+        for i in $(seq $RETRY_N); do
+            log "[check_start_service_$@]   Attempt ${i}/$RETRY_N to start '$@'"
+            if $(systemctl start $@.service; sleep 3; systemctl is-active $@.service); then
+              log "[check_start_service_$@]   Service '$@' started successfully"
+            else
+              log "[check_start_service_$@]   Something is wrong... Pausing for $RETRY_T sec"
+              sleep $RETRY_T
+            fi
+        done
+      fi
+    )
+    set -e
 }
 
 install_java()
@@ -185,20 +229,39 @@ install_monit()
 {
     local MONIT_CONF=/etc/monit/monitrc
 
-    log "[install_monit] Monit install started..."
-    run_cmd "(apt-get -yq install monit || (sleep 15; apt-get -yq install monit))"
+    log "[install_monit] Installing monit if not present ..."
+    check_install_pkg "monit"
     
-    log "[install_monit] Appending Monit config @ $MONIT_CONF ..."
+    log "[install_monit] Checking for old version of $MONIT_CONF ..."
+    set +e
+    (
+      if [[ -f "$MONIT_CONF" ]]; then
+        log "[install_monit]   $MONIT_CONF already present, backing up..."
+        run_cmd "(mv $MONIT_CONF $MONIT_CONF-$(date '+%Y%m%d%H%M%S').bak)"
+      else
+        log "[install_monit]   $MONIT_CONF does not exist"
+      fi
+    )
+    set -e
+
+    log "[install_monit] Generating new $MONIT_CONF ..."
     {
-        echo -e "set daemon 30"
+        echo -e "set daemon 120"
+        echo -e "  with start delay 240"
+        echo -e ""
+        echo -e "set logfile /var/log/monit.log"
+        echo -e "set idfile /var/lib/monit/id"
+        echo -e "set statefile /var/lib/monit/state"
+        echo -e ""
         echo -e "set httpd port 2812 and"
         echo -e "    use address localhost"
         echo -e "    allow localhost" 
-    } >> $MONIT_CONF
+        ""
+        "include /etc/monit/conf.d/*"
+    } > $MONIT_CONF
 
-    log "[install_monit] Starting monit..."
-    run_cmd "(systemctl start monit.service)"
-
+    log "[install_monit] Starting monit if not running..."
+    check_start_service "monit"
 }
 
 configure_monit_logstash()
@@ -281,12 +344,10 @@ fix_hostname()
     grep -q "${HOSTNAME}" /etc/hosts
 
   if [ $? == 0 ]; then
-    log "${HOSTNAME} found in /etc/hosts"
+    log "Hostname ${HOSTNAME} already exists in /etc/hosts"
   else
-    log "${HOSTNAME} not found in /etc/hosts"
-    # Append it to the hsots file if not there
+    log "$Appending {HOSTNAME} to /etc/hosts"
     run_cmd "(echo \"127.0.0.1 ${HOSTNAME}\" >> /etc/hosts)"
-    log "hostname ${HOSTNAME} added to /etc/hosts"
   fi
   )
   set -e
@@ -360,19 +421,6 @@ log "Bootstrapping Logstash..."
 #########################
 # Installation sequence
 #########################
-
-
-# if logstash is already installed assume this is a redeploy
-# change yaml configuration and only restart the server when needed
-if monit status logstash >& /dev/null; then
-  configure_logstash
-
-  # restart logstash if the configuration has changed
-  cmp --silent /etc/logstash/logstash.yml /etc/logstash/logstash.bak \
-    || monit restart logstash
-
-  exit 0
-fi
 
 fix_hostname
 
