@@ -110,7 +110,8 @@
           "typeHandlerVersion": "2.0",
           "autoUpgradeMinorVersion": true,
           "settings": {
-            "fileUris": "[variables('ubuntuScripts')]"
+            "fileUris": "[variables('ubuntuScripts')]",
+            "timestamp": 201704251359
           },
           "protectedSettings": {
             "commandToExecute": "[concat('bash elasticsearch-ubuntu-install.sh -x', variables('commonShortOpts'), variables('commonInstallParams'))]"
@@ -122,7 +123,8 @@
           "typeHandlerVersion": "2.0",
           "autoUpgradeMinorVersion": true,
           "settings": {
-            "fileUris": "[variables('ubuntuScripts')]"
+            "fileUris": "[variables('ubuntuScripts')]",
+            "timestamp": 201704251359
           },
           "protectedSettings": {
             "commandToExecute": "[variables('clientInstallScript')]"
@@ -134,7 +136,8 @@
           "typeHandlerVersion": "2.0",
           "autoUpgradeMinorVersion": true,
           "settings": {
-            "fileUris": "[variables('ubuntuScripts')]"
+            "fileUris": "[variables('ubuntuScripts')]",
+            "timestamp": 201704251359
           },
           "protectedSettings": {
             "commandToExecute": "[concat('bash data-node-install.sh -', variables('dataNodeShortOpt'), variables('commonShortOpts'), variables('commonInstallParams'), ' -U \"http://app-lon02.marketo.com/index.php/leadCapture/save2\" -I \"813-MAM-392\" -c \"', parameters('phoneHomeSettings').company, '\" -e \"', parameters('phoneHomeSettings').email, '\" -f \"', parameters('phoneHomeSettings').firstName, '\" -m \"', parameters('phoneHomeSettings').lastName, '\" -t \"', parameters('phoneHomeSettings').jobTitle, '\" -s \"', parameters('phoneHomeSettings').topology, '\" -o \"', parameters('phoneHomeSettings').country, '\"')]"
@@ -146,7 +149,8 @@
           "typeHandlerVersion": "2.0",
           "autoUpgradeMinorVersion": true,
           "settings": {
-            "fileUris": "[variables('ubuntuScripts')]"
+            "fileUris": "[variables('ubuntuScripts')]",
+            "timestamp": 201704251359
           },
           "protectedSettings": {
             "commandToExecute": "[concat('bash kibana-install.sh -', variables('installPluginsShortOpt'), 'n ', parameters('esSettings').clusterName, ' -v ', parameters('esSettings').kibanaVersion, ' -e ', parameters('esSettings').version, ' -u ', concat('http://', parameters('topologySettings').vNetLoadBalancerIp, ':9200') ,' -S \"', parameters('esSettings').securityKibanaServerPwd, '\"')]"
@@ -158,7 +162,8 @@
           "typeHandlerVersion": "2.0",
           "autoUpgradeMinorVersion": true,
           "settings": {
-            "fileUris": "[variables('ubuntuScripts')]"
+            "fileUris": "[variables('ubuntuScripts')]",
+            "timestamp": 201704251359
           },
           "protectedSettings": {
             "commandToExecute": "[concat('bash logstash-ubuntu-install.sh', ' -V ', parameters('esSettings').version, ' -R ', parameters('redisSettings').redisHost, ' -P ', parameters('redisSettings').redisPort, ' -W ', '\"', parameters('redisSettings').redisPrimaryKey, '\"')]"

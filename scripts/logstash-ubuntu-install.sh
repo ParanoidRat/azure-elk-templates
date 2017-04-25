@@ -256,8 +256,8 @@ install_monit()
         echo -e "set httpd port 2812 and"
         echo -e "    use address localhost"
         echo -e "    allow localhost" 
-        ""
-        "include /etc/monit/conf.d/*"
+        echo -e ""
+        echo -e "include /etc/monit/conf.d/*"
     } > $MONIT_CONF
 
     log "[install_monit] Starting monit if not running..."
