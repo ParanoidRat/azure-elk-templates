@@ -103,6 +103,7 @@
             "vhd": {
               "uri": "[concat('http://',parameters('vm').shared.storageAccountName,'.blob.core.windows.net/vhds/', variables('namespace'), parameters('index'), '-osdisk.vhd')]"
             },
+            "DiskSizeGB": 15,
             "caching": "ReadWrite",
             "createOption": "FromImage"
           },

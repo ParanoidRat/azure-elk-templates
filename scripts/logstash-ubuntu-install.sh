@@ -245,9 +245,10 @@ install_monit()
     set -e
 
     log "[install_monit] Generating new $MONIT_CONF ..."
+    run_cmd "(touch $MONIT_CONF && chmod 600 $MONIT_CONF)"
     {
         echo -e "set daemon 120"
-        echo -e "  with start delay 240"
+        echo -e "  with start delay 60"
         echo -e ""
         echo -e "set logfile /var/log/monit.log"
         echo -e "set idfile /var/lib/monit/id"
