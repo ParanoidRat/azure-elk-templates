@@ -435,10 +435,6 @@ log "Bootstrapping Logstash..."
 
 fix_hostname
 
-install_monit
-
-install_stunnel
-
 install_java
 
 install_logstash
@@ -450,9 +446,13 @@ fi
 
 configure_logstash
 
-configure_monit_stunnel
+install_stunnel
+
+install_monit
 
 configure_monit_logstash
+
+configure_monit_stunnel
 
 ELAPSED_TIME=$(($SECONDS - $START_TIME))
 PRETTY=$(printf '%dh:%dm:%ds\n' $(($ELAPSED_TIME/3600)) $(($ELAPSED_TIME%3600/60)) $(($ELAPSED_TIME%60)))
