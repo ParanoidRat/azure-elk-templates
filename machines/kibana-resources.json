@@ -103,11 +103,11 @@
           {
             "name": "Kibana",
             "properties": {
-              "description": "Allows inbound Kibana HTTP traffic from mgmt",
+              "description": "Allows inbound Kibana HTTP traffic from anyone",
               "protocol": "Tcp",
               "sourcePortRange": "*",
               "destinationPortRange": "5601",
-              "sourceAddressPrefix": "165.65.107.0/24",
+              "sourceAddressPrefix": "*",
               "destinationAddressPrefix": "*",
               "access": "Allow",
               "priority": 200,
