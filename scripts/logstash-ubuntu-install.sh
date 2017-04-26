@@ -103,6 +103,21 @@ check_start_service()
     set -e
 }
 
+check_create_conf()
+{
+    log "[check_create_conf] Checking for old version of $@ ..."
+    set +e
+    (
+      if [[ -f "$@" ]]; then
+        log "[check_create_conf]   $@ already present, backing up..."
+        run_cmd "(mv $@ $@-$(date '+%Y%m%d%H%M%S').bak)"
+      else
+        log "[check_create_conf]   $@ does not exist"
+      fi
+    )
+    set -e
+}
+
 install_java()
 {
     log "[install_java] adding APT repository for oracle-java8..."
@@ -231,20 +246,11 @@ install_monit()
 
     log "[install_monit] Installing monit if not present ..."
     check_install_pkg "monit"
-    
-    log "[install_monit] Checking for old version of $MONIT_CONF ..."
-    set +e
-    (
-      if [[ -f "$MONIT_CONF" ]]; then
-        log "[install_monit]   $MONIT_CONF already present, backing up..."
-        run_cmd "(mv $MONIT_CONF $MONIT_CONF-$(date '+%Y%m%d%H%M%S').bak)"
-      else
-        log "[install_monit]   $MONIT_CONF does not exist"
-      fi
-    )
-    set -e
 
-    log "[install_monit] Generating new $MONIT_CONF ..."
+    log "[install_monit] Creating $MONIT_CONF if not present ..."
+    check_create_conf "$MONIT_CONF"
+
+    log "[install_monit] Generating content for $MONIT_CONF ..."
     run_cmd "(touch $MONIT_CONF && chmod 600 $MONIT_CONF)"
     {
         echo -e "set daemon 120"
@@ -305,10 +311,13 @@ install_stunnel()
 {
     local ST_AZ_REDIS_CONF=/etc/stunnel/az-redis.conf
 
-    log "[install_stunnel] Stunnel install started..."
-    run_cmd "(apt-get -yq install stunnel || (sleep 15; apt-get -yq install stunnel))"
+    log "[install_stunnel] Installing stunnel4 if not present ..."
+    check_install_pkg "stunnel4"
+
+    log "[install_monit] Creating $ST_AZ_REDIS_CONF if not present ..."
+    check_create_conf "$ST_AZ_REDIS_CONF"
     
-    log "[install_stunnel] Generating stunnel config @ $ST_AZ_REDIS_CONF ..."
+    log "[install_stunnel] Generating content for $ST_AZ_REDIS_CONF ..."
     {
         echo -e "setuid = stunnel4"
         echo -e "setgid = stunnel4"
@@ -327,13 +336,14 @@ install_stunnel()
         echo -e "  connect = $REDIS_HOST:$REDIS_PORT"
     } > $ST_AZ_REDIS_CONF
 
+
     local ST_DEFAULT=/etc/default/stunnel4
 
-    log "[install_stunnel] Enabling tunnels in main config @ $ST_DEFAULT ..."
+    log "[install_stunnel] In-place edit of $ST_DEFAULT enabling tunnels ..."
     run_cmd "(sed -i.bak s/ENABLED=0/ENABLED=1/g $ST_DEFAULT)"
 
-    log "[install_stunnel] Starting stunnel main daemon..."
-    run_cmd "(systemctl start stunnel4.service)"
+    log "[install_stunnel] Starting stunnel4 if not running ..."
+    check_start_service "stunnel4"
 }
 
 fix_hostname()
@@ -343,16 +353,16 @@ fix_hostname()
   set +e
   (
     grep -q "${HOSTNAME}" /etc/hosts
-
-  if [ $? == 0 ]; then
-    log "Hostname ${HOSTNAME} already exists in /etc/hosts"
-  else
-    log "$Appending {HOSTNAME} to /etc/hosts"
-    run_cmd "(echo \"127.0.0.1 ${HOSTNAME}\" >> /etc/hosts)"
-  fi
+    if [ $? == 0 ]; then
+      log "Hostname ${HOSTNAME} already exists in /etc/hosts"
+    else
+      log "$Appending {HOSTNAME} to /etc/hosts"
+      run_cmd "(echo \"127.0.0.1 ${HOSTNAME}\" >> /etc/hosts)"
+    fi
   )
   set -e
 }
+
 
 #########################
 # Check requirements
@@ -369,7 +379,7 @@ fi
 # Main
 #########################
 
-log "Logstash extension script started @${HOSTNAME}"
+log "Logstash extension script started on ${HOSTNAME}"
 START_TIME=$SECONDS
 
 export DEBIAN_FRONTEND=noninteractive
@@ -447,5 +457,5 @@ configure_monit_logstash
 ELAPSED_TIME=$(($SECONDS - $START_TIME))
 PRETTY=$(printf '%dh:%dm:%ds\n' $(($ELAPSED_TIME/3600)) $(($ELAPSED_TIME%3600/60)) $(($ELAPSED_TIME%60)))
 
-log "Logstash extension script ended @${HOSTNAME} in ${PRETTY}"
+log "Logstash bootstrap script ended on ${HOSTNAME} in ${PRETTY}"
 exit 0
