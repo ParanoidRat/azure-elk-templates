@@ -77,24 +77,29 @@ check_install_pkg()
     set -e
 }
 
-check_start_service()
+check_start_restart_service()
 {
     local RETRY_T="5"
     local RETRY_N="3"
 
-    log "[check_start_service_$@] Checking for running service '$@' ..."
+    log "[check_start_restart_service_$@] Checking for running service '$@' ..."
     set +e
     (
       if $(systemctl is-active $@.service >/dev/null); then
-        log "[check_start_service_$@]   Service '$@' already running, moving on..."
-        return
+        log "[check_start_restart_service_$@]   Service '$@' already running. Restarting..."
+        if $(systemctl restart $@.service; sleep $RETRY_T; systemctl is-active $@.service >/dev/null); then
+          log "[check_start_restart_service_$@]   Service '$@' restarted successfully"
+        else
+          log "[check_start_restart_service_$@]   Something went wrong when restarting service '$@'. Moving on..."
+        fi
       else
         for i in $(seq $RETRY_N); do
-            log "[check_start_service_$@]   Attempt ${i}/$RETRY_N to start '$@'"
-            if $(systemctl start $@.service; sleep 3; systemctl is-active $@.service); then
-              log "[check_start_service_$@]   Service '$@' started successfully"
+            log "[check_start_restart_service_$@]   Attempt ${i}/$RETRY_N to start '$@'"
+            if $(systemctl start $@.service; sleep $RETRY_T; systemctl is-active $@.service >/dev/null); then
+              log "[check_start_restart_service_$@]   Service '$@' started successfully"
+              return
             else
-              log "[check_start_service_$@]   Something is wrong... Pausing for $RETRY_T sec"
+              log "[check_start_restart_service_$@]   Something is wrong... Pausing for $RETRY_T sec"
               sleep $RETRY_T
             fi
         done
@@ -235,6 +240,9 @@ configure_logstash()
         echo -e "output {"
         echo -e "  elasticsearch {"
         echo -e "    hosts => [\"$ES_URI\"]"
+        echo -e "    manage_template => false"
+        echo -e "    index => \"%{[@metadata][src_id]}-%{[@metadata][src_type]}-%{+YYYY.MM.dd}\""
+        echo -e "    document_type => \"%{[@metadata][src_type]}\""
         echo -e "  }"
         echo -e "}"
     ) > $LS_CONF_ES    
@@ -268,7 +276,7 @@ install_monit()
     } > $MONIT_CONF
 
     log "[install_monit] Starting monit if not running..."
-    check_start_service "monit"
+    check_start_restart_service "monit"
 }
 
 configure_monit_logstash()
@@ -343,7 +351,7 @@ install_stunnel()
     run_cmd "(sed -i.bak s/ENABLED=0/ENABLED=1/g $ST_DEFAULT)"
 
     log "[install_stunnel] Starting stunnel4 if not running ..."
-    check_start_service "stunnel4"
+    check_start_restart_service "stunnel4"
 }
 
 fix_hostname()
@@ -435,6 +443,8 @@ log "Bootstrapping Logstash..."
 
 fix_hostname
 
+install_stunnel
+
 install_java
 
 install_logstash
@@ -445,8 +455,6 @@ if [[ ! -z "${INSTALL_ADDITIONAL_PLUGINS// }" ]]; then
 fi
 
 configure_logstash
-
-install_stunnel
 
 install_monit
 
