@@ -46,8 +46,8 @@
   ],
   "outputs": {
     "snapshotStorageAccountKey": {
-      "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('snapshotStorageName')), '2015-08-01').primaryKey]",
-      "type": "string"
+      "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('snapshotStorageName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0])]",
+      "type" : "object"
     },
     "snapshotStorageAccountName": {
       "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('snapshotStorageName')).name]",
