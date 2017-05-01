@@ -241,8 +241,8 @@ configure_logstash()
         echo -e "  elasticsearch {"
         echo -e "    hosts => [\"$ES_URI\"]"
         echo -e "    manage_template => false"
-        echo -e "    index => \"%{[@metadata][src_id]}-%{[@metadata][src_type]}-%{+YYYY.MM.dd}\""
-        echo -e "    document_type => \"%{[@metadata][src_type]}\""
+        echo -e "    index => \"%{[@metadata][src_id]}-%{[@metadata][log_type]}-%{+YYYY.MM.dd}\""
+        echo -e "    document_type => \"%{[@metadata][log_type]}\""
         echo -e "  }"
         echo -e "}"
     ) > $LS_CONF_ES    

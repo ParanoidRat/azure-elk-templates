@@ -15,7 +15,22 @@
       }
     }
   },
+  "variables": {
+    "snapshotStorageName": "essnaprepo",
+  },
   "resources": [
+    {
+      "type": "Microsoft.Storage/storageAccounts",
+      "name": "[variables('snapshotStorageName')]",
+      "apiVersion": "2016-01-01",
+      "location": "[parameters('location')]",
+      "sku": {
+        "name": "Standard_LRS"
+      },
+      "kind": "Storage",
+      "properties": {
+      }
+    },
     {
       "type": "Microsoft.Storage/storageAccounts",
       "name": "[parameters('storageAccountName')]",
@@ -28,5 +43,15 @@
       "properties": {
       }
     }
-  ]
+  ],
+  "outputs": {
+    "snapshotStorageAccountKey": {
+      "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('snapshotStorageName')), '2015-08-01').primaryKey]",
+      "type": "string"
+    },
+    "snapshotStorageAccountName": {
+      "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('snapshotStorageName')).name]",
+      "type": "string"
+    }
+  }
 }
