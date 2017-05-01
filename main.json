@@ -64,21 +64,6 @@
         "description": "Choose whether to install Azure Cloud plugin. The plugin allows an existing Azure storage account to be used for snapshot and restore"
       }
     },
-    "azureCloudStorageAccountName": {
-      "type": "string",
-      "defaultValue": "",
-      "maxLength": 24,
-      "metadata": {
-        "description": "The name of an existing storage account to use for snapshots with Azure Cloud plugin. Must be between 3 and 24 alphanumeric lowercase characters."
-      }
-    },
-    "azureCloudStorageAccountKey": {
-      "type": "securestring",
-      "defaultValue": "",
-      "metadata": {
-        "description": "The access key of an existing storage account to use for snapshots with Azure Cloud plugin"
-      }
-    },
     "xpackPlugins": {
       "type": "string",
       "allowedValues": [
@@ -872,11 +857,6 @@
       "westus2": "[resourceGroup().location]"
     },
     "location": "[variables('locationMap')[parameters('location')]]",
-    "azureCloudStorageAccount": {
-      "name": "[parameters('azureCloudStorageAccountName')]",
-      "key": "[parameters('azureCloudStorageAccountKey')]",
-      "install": "[parameters('azureCloudPlugin')]"
-    },
     "esToKibanaMapping": {
       "2.0.2": "4.2.2",
       "2.1.2": "4.3.3",
@@ -1446,7 +1426,11 @@
             "value": "[variables('networkSettings')]"
           },
           "azureCloudStorageAccount": {
-            "value": "[variables('azureCloudStorageAccount')]"
+            "value": {
+              "name": "[reference('shared').outputs.snapshotStorageAccountName.value]",
+              "key": "[reference('shared').outputs.snapshotStorageAccountKey.value]",
+              "install": "[parameters('azureCloudPlugin')]"
+            }
           },
           "redisSettings": {
             "value": {

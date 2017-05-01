@@ -16,7 +16,7 @@
     }
   },
   "variables": {
-    "snapshotStorageName": "essnaprepo",
+    "snapshotStorageName": "[concat('essnap', uniqueString(resourceGroup().id, deployment().name))]",
   },
   "resources": [
     {
@@ -46,11 +46,11 @@
   ],
   "outputs": {
     "snapshotStorageAccountKey": {
-      "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('snapshotStorageName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0])]",
+      "value": "[listKeys(resourceId('Microsoft.Storage/storageAccounts', variables('snapshotStorageName')), providers('Microsoft.Storage', 'storageAccounts').apiVersions[0]).keys[0].value]",
       "type" : "object"
     },
     "snapshotStorageAccountName": {
-      "value": "[reference(resourceId('Microsoft.Storage/storageAccounts', variables('snapshotStorageName')))]",
+      "value": "[variables('snapshotStorageName')]",
       "type": "object"
     }
   }
