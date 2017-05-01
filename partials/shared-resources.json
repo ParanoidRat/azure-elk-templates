@@ -50,8 +50,8 @@
       "type" : "object"
     },
     "snapshotStorageAccountName": {
-      "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('snapshotStorageName')).name]",
-      "type": "string"
+      "value": "[resourceId('Microsoft.Storage/storageAccounts', variables('snapshotStorageName'))]",
+      "type": "object"
     }
   }
 }
