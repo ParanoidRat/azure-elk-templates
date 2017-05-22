@@ -48,7 +48,7 @@
   "variables": {
     "namespace": "[parameters('namespace')]",
     "vmSize": "Standard_A0",
-    "subnetRef": "[concat(resourceId(parameters('networkSettings').resourceGroup, 'Microsoft.Network/virtualNetworks', parameters('networkSettings').name), '/subnets/', parameters('networkSettings').subnet.name)]",
+    "subnetRef": "[concat(resourceId(parameters('networkSettings').resourceGroup, 'Microsoft.Network/virtualNetworks', parameters('networkSettings').name), '/subnets/', parameters('networkSettings').extSubnet.name)]",
     "publicIpName": "[concat(variables('namespace'), '-ip')]",
     "securityGroupName": "[concat(variables('namespace'), '-nsg')]",
     "nicName": "[concat(variables('namespace'), '-nic')]",

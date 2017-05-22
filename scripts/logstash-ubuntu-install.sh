@@ -39,8 +39,11 @@ help()
 
 log()
 {
-    echo \[$(date '+%Y-%m-%d %H:%M:%S')\] "$1"
-    if [ ! $DEBUG ]; then echo \[$(date '+%Y-%m-%d %H:%M:%S')\] "$1" >> /var/log/arm-install.log; fi
+    if [ $DEBUG ]; then
+      echo \[$(date '+%Y-%m-%d %H:%M:%S')\] "$1" 
+    else
+      echo \[$(date '+%Y-%m-%d %H:%M:%S')\] "$1" >> /var/log/arm-install.log
+    fi
 }
 
 run_cmd()
@@ -227,9 +230,12 @@ configure_logstash()
         echo -e "    host => \"localhost\""
         echo -e "    port => \"6379\""
         echo -e "    password => \"$REDIS_PASSWORD\""
-        echo -e "    data_type => \"list\""
+        echo -e ""
         echo -e "    key => \"$REDIS_KEY\""
+        echo -e "    data_type => \"list\""
+        echo -e ""
         echo -e "    threads => 4"
+        echo -e "    codec => \"json\""
         echo -e "  }"
         echo -e "}"
     ) > $LS_CONF_R
@@ -364,7 +370,7 @@ fix_hostname()
     if [ $? == 0 ]; then
       log "Hostname ${HOSTNAME} already exists in /etc/hosts"
     else
-      log "$Appending {HOSTNAME} to /etc/hosts"
+      log "Appending ${HOSTNAME} to /etc/hosts"
       run_cmd "(echo \"127.0.0.1 ${HOSTNAME}\" >> /etc/hosts)"
     fi
   )
