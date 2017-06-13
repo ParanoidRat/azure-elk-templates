@@ -220,6 +220,7 @@ configure_logstash()
     local LS_CONF_SYSLOG=/etc/logstash/conf.d/020-syslog-filter.conf
     local LS_CONF_DHCPD=/etc/logstash/conf.d/030-dhcpd-filter.conf    
     local LS_CONF_ES=/etc/logstash/conf.d/040-elastic-output.conf
+    
     local LS_GROK_DIR=/etc/logstash/patterns.d
   
 
@@ -228,35 +229,44 @@ configure_logstash()
     log "[configure_logstash] Generating $LS_CONF_R..."
     log "[configure_logstash] Redis defined as '$REDIS_HOST:$REDIS_PORT'"
     log "[configure_logstash] Redis channel defined as '$REDIS_KEY'"
+    set +e
     (
-        echo -e "input {"
-        echo -e "  redis {"
-        echo -e "    host => \"localhost\""
-        echo -e "    port => \"6379\""
-        echo -e "    password => \"$REDIS_PASSWORD\""
-        echo -e ""
-        echo -e "    key => \"$REDIS_KEY\""
-        echo -e "    data_type => \"list\""
-        echo -e ""
-        echo -e "    threads => 4"
-        echo -e "    codec => \"json\""
-        echo -e "  }"
-        echo -e "}"
-    ) > $LS_CONF_R
+      cat <<-EOF > $LS_CONF_R
+        input {
+          redis {
+            host => "localhost"
+            port => "6379"
+            password => "$REDIS_PASSWORD"
+
+            key => "$REDIS_KEY"
+            data_type => "list"
+
+            threads => 8
+            codec => "json"
+
+            add_field => { "indexed_by" => "${HOSTNAME}" }
+          }
+        }
+EOF
+    )
+    set -e
 
     log "[configure_logstash] Generating $LS_CONF_ES..."
     log "[configure_logstash] Elasticsearch output URI defined as '$ES_URI'"
+    set +e
     (
-        echo -e "output {"
-        echo -e "  elasticsearch {"
-        echo -e "    hosts => [\"$ES_URI\"]"
-        echo -e "    manage_template => false"
-        echo -e "    index => \"%{[src_id]}-%{[log_type]}-%{+YYYY.MM.dd}\""
-        echo -e "    document_type => \"%{[log_type]}\""
-        echo -e "  }"
-        echo -e "}"
-    ) > $LS_CONF_ES
-
+      cat <<-EOF > $LS_CONF_ES
+        output {
+          elasticsearch {
+            hosts => [ "$ES_URI" ]
+            manage_template => false
+            index => "%{[src_id]}-%{[log_type]}-%{+YYYY.MM.dd}"
+            document_type => "%{[log_type]}"
+          }
+        }
+EOF
+    )
+    set -e
 
     log "[configure_logstash] Generating $LS_CONF_SYSLOG..."
     set +e
@@ -292,7 +302,7 @@ EOF
       filter {
         if [log_type] == "dhcp" {
           grok {
-            patterns_dir => [ "/etc/logstash/patterns.d" ]
+            patterns_dir => [ "$LS_GROK_DIR" ]
 
             match => { "message" => "%{DHCPD}" }
 
