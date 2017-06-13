@@ -217,7 +217,11 @@ install_additional_plugins()
 configure_logstash()
 {
     local LS_CONF_R=/etc/logstash/conf.d/010-redis-input.conf
-    local LS_CONF_ES=/etc/logstash/conf.d/020-elastic-output.conf
+    local LS_CONF_SYSLOG=/etc/logstash/conf.d/020-syslog-filter.conf
+    local LS_CONF_DHCPD=/etc/logstash/conf.d/030-dhcpd-filter.conf    
+    local LS_CONF_ES=/etc/logstash/conf.d/040-elastic-output.conf
+    local LS_GROK_DIR=/etc/logstash/patterns.d
+  
 
     log "[configure_logstash] Logstash configuration started..."
 
@@ -247,11 +251,83 @@ configure_logstash()
         echo -e "  elasticsearch {"
         echo -e "    hosts => [\"$ES_URI\"]"
         echo -e "    manage_template => false"
-        echo -e "    index => \"%{[@metadata][src_id]}-%{[@metadata][log_type]}-%{+YYYY.MM.dd}\""
-        echo -e "    document_type => \"%{[@metadata][log_type]}\""
+        echo -e "    index => \"%{[src_id]}-%{[log_type]}-%{+YYYY.MM.dd}\""
+        echo -e "    document_type => \"%{[log_type]}\""
         echo -e "  }"
         echo -e "}"
-    ) > $LS_CONF_ES    
+    ) > $LS_CONF_ES
+
+
+    log "[configure_logstash] Generating $LS_CONF_SYSLOG..."
+    set +e
+    (
+      cat <<-EOF > $LS_CONF_SYSLOG
+      filter {
+        if [type] == "syslog" {
+          grok {
+            match => { "message" => "%{SYSLOGBASE} %{GREEDYDATA:message}" }
+            overwrite => [ "message" ]
+
+            add_field => [ "received_at", "%{@timestamp}" ]
+
+            add_tag        => [ "_grok_success_syslog" ]
+            tag_on_failure => [ "_grok_nomatch_syslog" ]
+          }
+          date {
+            match => [ "timestamp", "MMM  d HH:mm:ss", "MMM dd HH:mm:ss" ]
+            timezone => "US/Eastern"
+            target => "@timestamp"
+          }
+        }
+      }
+EOF
+    )
+    set -e
+
+
+    log "[configure_logstash] Generating $LS_CONF_DHCPD..."
+    set +e
+    (
+      cat <<-EOF > $LS_CONF_DHCPD
+      filter {
+        if [log_type] == "dhcp" {
+          grok {
+            patterns_dir => [ "/etc/logstash/patterns.d" ]
+
+            match => { "message" => "%{DHCPD}" }
+
+            add_tag        => [ "_grok_success_dhcpd" ]
+            tag_on_failure => [ "_grok_nomatch_dhcpd" ]
+          }
+        }
+      }
+EOF
+    )
+    set -e
+
+
+    log "[configure_logstash] Making dir $LS_GROK_DIR..."
+    run_cmd "(mkdir $LS_GROK_DIR)"
+
+    log "[configure_logstash] Generating DHCPD grok pattern config..."
+    set +e
+    (
+      cat <<-EOF > $LS_GROK_DIR/dhcpd.grok
+      DHCPD_VIA via (%{IP:dhcp_relay_ip}|(?<dhcp_device>[^: ]+))
+
+      DHCPD_OPERATION DHCP(%{DHCPD_DISCOVER}|%{DHCPD_OFFER_ACK}|%{DHCPD_REQUEST}|%{DHCPD_DECLINE}|%{DHCPD_RELEASE}|%{DHCPD_INFORM}|%{DHCPD_LEASE})(: %{GREEDYDATA:dhcpd_message})?
+      DHCPD_DISCOVER (?<dhcp_operation>DISCOVER) from %{MAC:dhcp_client_mac}( \(%{DATA:dhcp_client_name}\))? %{DHCPD_VIA}
+      DHCPD_OFFER_ACK (?<dhcp_operation>(OFFER|N?ACK)) on %{IP:dhcp_client_ip} to %{MAC:dhcp_client_mac}( \(%{DATA:dhcp_client_name}\))? %{DHCPD_VIA}
+      DHCPD_REQUEST (?<dhcp_operation>REQUEST) for %{IP:dhcp_client_ip}( \(%{DATA:dhcp_server_ip}\))? from %{MAC:dhcp_client_mac}( \(%{DATA:dhcp_client_name}\))? %{DHCPD_VIA}
+      DHCPD_DECLINE (?<dhcp_operation>DECLINE) of %{IP:dhcp_client_ip} from %{MAC:dhcp_client_mac}( \(%{DATA:dhcp_client_name}\))? %{DHCPD_VIA}
+      DHCPD_RELEASE (?<dhcp_operation>RELEASE) of %{IP:dhcp_client_ip} from %{MAC:dhcp_client_mac}( \(%{DATA:dhcp_client_name}\))? %{DHCPD_VIA} \((?<dhcpd_release>(not )?found)\)
+      DHCPD_INFORM (?<dhcp_operation>INFORM) from %{IP:dhcp_client_ip}? %{DHCPD_VIA}
+      DHCPD_LEASE (?<dhcp_operation>LEASE(QUERY|UNKNOWN|ACTIVE|UNASSIGNED)) (from|to) %{IP:dhcp_client_ip} for (IP %{IP:dhcp_leasequery_ip}|client-id %{NOTSPACE:dhcp_leasequery_id}|MAC address %{MAC:dhcp_leasequery_mac})( \(%{NUMBER:dhcp_leasequery_associated} associated IPs\))?
+
+      DHCPD %{DHCPD_OPERATION}
+EOF
+    )
+    set -e    
 }
 
 install_monit()
