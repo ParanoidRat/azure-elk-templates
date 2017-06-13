@@ -319,7 +319,8 @@ EOF
     DHCPD_LEASE (?<dhcp_operation>LEASE(QUERY|UNKNOWN|ACTIVE|UNASSIGNED)) (from|to) %{IP:dhcp_client_ip} for (IP %{IP:dhcp_leasequery_ip}|client-id %{NOTSPACE:dhcp_leasequery_id}|MAC address %{MAC:dhcp_leasequery_mac})( \(%{NUMBER:dhcp_leasequery_associated} associated IPs\))?
 
     DHCPD %{DHCPD_OPERATION}
-EOF   
+EOF
+  
 }
 
 install_monit()
