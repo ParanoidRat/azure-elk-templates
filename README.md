@@ -8,7 +8,10 @@ Modifications include:
 * deploy Redis cache instance
 * deploy a set of Logstash workers with proper Redis and Elasticsearch config
 * deploy nodes in different subnets
-* (TODO) deploy Ngnix for Kibana/Graphana TLS and Auth
+* configure Logstash for processing of ISC DHCPD logs (syslog)
+* (TODO) configure Logstash for processing of NProbe NetFlow logs 
+* (TODO) provide Filebeat config to ship DHCPD and NProbe logs to Redis
+* (TODO) deploy Ngnix for Kibana TLS and Auth
 
 
 ## Getting Started
