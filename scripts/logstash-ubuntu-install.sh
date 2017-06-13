@@ -243,7 +243,7 @@ input {
     threads => 8
     codec => "json"
 
-    tag => [ "_indexed_by_${HOSTNAME}" ]
+    tags => [ "_indexed_by_${HOSTNAME}" ]
   }
 }
 EOF_CONF
