@@ -1,0 +1,38 @@
+filebeat:
+  prospectors:
+  - 
+    input_type: log
+    document_type: syslog
+    paths:
+      - /path/to/dhcpd/logs
+    fields:
+      src_id: test
+      log_type: dhcp
+    fields_under_root: true
+
+output:
+  redis:
+    enabled: true
+
+    hosts: ["redis-instance.redis.cache.windows.net:6380"]
+    password: "<Azure Redis Access Key>"
+
+    timeout: 10
+
+    ssl:
+      enabled: true
+      certificate_authorities: ["/etc/filebeat/azure-ca.pem"]
+
+    key: "logstash"
+    db: 0
+
+    max_retries: -1
+    bulk_max_size: 2048
+
+logging:
+  level: warning
+  to_files: true
+  to_syslog: false
+  files:
+    path: /var/log/filebeat
+    name: filebeat.log
