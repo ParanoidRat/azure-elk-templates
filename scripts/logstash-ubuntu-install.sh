@@ -278,13 +278,12 @@ EOF_CONF
 
 
     log "[configure_logstash] Generating $LS_CONF_METRICS..."
-    log "[configure_logstash] _metric_from_ tag defined as '${HOSTNAME}'"
 # -----------------------------------------------------------
 cat <<EOF_CONF > $LS_CONF_METRICS
 filter {
   metrics {
-    meter => [ "documents", "_grok_success_syslog", "received_at" ]
-    add_tag => [ "_metrics", "_metric_from_${HOSTNAME}" ]
+    meter => [ "documents" ]
+    add_tag => [ "_metrics" ]
   }
 }
 EOF_CONF
