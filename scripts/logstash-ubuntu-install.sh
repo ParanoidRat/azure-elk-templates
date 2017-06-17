@@ -216,21 +216,22 @@ install_additional_plugins()
 
 configure_logstash()
 {
-    local LS_CONF_R=/etc/logstash/conf.d/010-redis-input.conf
-    local LS_CONF_SYSLOG=/etc/logstash/conf.d/020-syslog-filter.conf
-    local LS_CONF_DHCPD=/etc/logstash/conf.d/030-dhcpd-filter.conf    
-    local LS_CONF_ES=/etc/logstash/conf.d/040-elastic-output.conf   
+    local LS_CONF_REDIS=/etc/logstash/conf.d/010-input-redis.conf
+    local LS_CONF_METRICS=/etc/logstash/conf.d/020-filter-metrics.conf
+    local LS_CONF_SYSLOG=/etc/logstash/conf.d/030-filter-syslog.conf
+    local LS_CONF_DHCPD=/etc/logstash/conf.d/040-filter-dhcpd.conf
+    local LS_CONF_ES=/etc/logstash/conf.d/050-output-elastic.conf
     local LS_GROK_DIR=/etc/logstash/patterns.d
 
     log "[configure_logstash] Logstash configuration started..."
 
 
-    log "[configure_logstash] Generating $LS_CONF_R..."
+    log "[configure_logstash] Generating $LS_CONF_REDIS..."
     log "[configure_logstash] Redis defined as '$REDIS_HOST:$REDIS_PORT'"
     log "[configure_logstash] Redis channel defined as '$REDIS_KEY'"
     log "[configure_logstash] _indexed_by_ tag defined as '${HOSTNAME}'"
 # -----------------------------------------------------------
-cat <<EOF_CONF > $LS_CONF_R
+cat <<EOF_CONF > $LS_CONF_REDIS
 input {
   redis {
     host => "localhost"
@@ -252,14 +253,37 @@ EOF_CONF
 
     log "[configure_logstash] Generating $LS_CONF_ES..."
     log "[configure_logstash] Elasticsearch output URI defined as '$ES_URI'"
+    log "[configure_logstash] metrics index defined as 'metrics-${HOSTNAME}-%{+YYYY.MM.dd}'"
 # -----------------------------------------------------------
 cat <<EOF_CONF > $LS_CONF_ES
 output {
-  elasticsearch {
-    hosts => [ "$ES_URI" ]
-    manage_template => false
-    index => "%{[src_id]}-%{[log_type]}-%{+YYYY.MM.dd}"
-    document_type => "%{[log_type]}"
+  if "_metrics" in [tags] {
+    elasticsearch {
+      hosts => [ "$ES_URI" ]
+      manage_template => false
+      index => "metrics-${HOSTNAME}-%{+YYYY.MM.dd}"
+      document_type => "metrics"
+    }
+  } else {
+    elasticsearch {
+      hosts => [ "$ES_URI" ]
+      manage_template => false
+      index => "logs-%{[log_type]}-%{[src_id]}-%{+YYYY.MM.dd}"
+      document_type => "logs-%{[log_type]}"
+    }
+  }
+}
+EOF_CONF
+# -----------------------------------------------------------
+
+
+    log "[configure_logstash] Generating $LS_CONF_METRICS..."
+# -----------------------------------------------------------
+cat <<EOF_CONF > $LS_CONF_METRICS
+filter {
+  metrics {
+    meter => [ "documents" ]
+    add_tag => [ "_metrics" ]
   }
 }
 EOF_CONF
