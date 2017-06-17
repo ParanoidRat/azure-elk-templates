@@ -241,7 +241,7 @@ input {
     key => "$REDIS_KEY"
     data_type => "list"
 
-    threads => 2
+    threads => 8
     codec => "json"
 
     tags => [ "_indexed_by_${HOSTNAME}" ]
